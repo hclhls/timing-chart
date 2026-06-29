@@ -206,6 +206,14 @@ export function SignalTable() {
         </details>
       </div>
 
+      {signalPaths.length === 0 && (
+        <div className="empty-state">
+          <p>信号がまだありません。</p>
+          <button onClick={() => applyGuiModel(addSignal(model))}>＋ 最初の信号を追加</button>
+          <span className="empty-hint">追加したら、マスをクリックして High / Low を描けます。</span>
+        </div>
+      )}
+
       <div className="table-scroll">
         <table className="grid">
           <thead>

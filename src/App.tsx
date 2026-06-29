@@ -8,6 +8,16 @@ import { BusDataPanel } from './components/gui/BusDataPanel'
 import { EdgeEditor } from './components/annotations/EdgeEditor'
 import { WaveJsonEditor } from './components/text/WaveJsonEditor'
 import { PreviewPane } from './components/preview/PreviewPane'
+import { HelpModal } from './components/HelpModal'
+
+const HELP_SEEN_KEY = 'timing-chart:seen-help'
+const BLANK = {
+  signal: [
+    { name: 'clk', wave: 'P....' },
+    { name: 'data', wave: '0....' },
+  ],
+  config: { hscale: 1 },
+}
 
 type Tab = 'gui' | 'text' | 'preview'
 const TABS: { id: Tab; label: string }[] = [
@@ -20,6 +30,24 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('gui')
   const selectedPath = useEditor((s) => s.selectedPath)
   const model = useEditor((s) => s.model)
+  const loadModel = useEditor((s) => s.loadModel)
+
+  // Show the welcome/help on first visit; reopenable via the ? button.
+  const [helpOpen, setHelpOpen] = useState(() => {
+    try {
+      return !localStorage.getItem(HELP_SEEN_KEY)
+    } catch {
+      return true
+    }
+  })
+  const closeHelp = () => {
+    setHelpOpen(false)
+    try {
+      localStorage.setItem(HELP_SEEN_KEY, '1')
+    } catch {
+      /* ignore */
+    }
+  }
 
   // Selected signal's bus segments / name + edge count → drive panel discovery.
   const selSig = selectedPath
@@ -99,6 +127,15 @@ export default function App() {
 
   return (
     <div className="app">
+      {helpOpen && (
+        <HelpModal
+          onClose={closeHelp}
+          onStartBlank={() => {
+            loadModel(BLANK)
+            closeHelp()
+          }}
+        />
+      )}
       <Toolbar />
 
       <nav className="tabbar" role="tablist" aria-label="表示切替">
@@ -117,6 +154,9 @@ export default function App() {
             {label}
           </button>
         ))}
+        <button className="help-btn" onClick={() => setHelpOpen(true)} title="はじめに / ヘルプ">
+          ？ ヘルプ
+        </button>
       </nav>
 
       <main className="workspace" data-tab={tab}>
