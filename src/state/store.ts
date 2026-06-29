@@ -9,12 +9,24 @@ import { flattenSignals } from './selectors'
 
 const STORAGE_KEY = 'timing-chart:model'
 
-/** Does `path` still resolve to an existing signal row in `model`? */
-function pathResolvesToSignal(path: number[] | null, model: WaveJson): boolean {
-  if (!path) return false
-  return flattenSignals(model).some(
+/** The signal at `path`, or undefined. */
+function signalAt(path: number[] | null, model: WaveJson) {
+  if (!path) return undefined
+  return flattenSignals(model).find(
     (r) => r.kind === 'signal' && r.path.length === path.length && r.path.every((v, i) => v === path[i]),
-  )
+  )?.signal
+}
+
+/**
+ * Is the selection still valid after a structural change? Requires both that
+ * the path resolves AND that it points at the SAME signal (by name) — so a
+ * reorder/insert that shifts indices doesn't leave the panels editing a
+ * different row that happens to occupy the old path.
+ */
+function selectionSurvives(path: number[] | null, before: WaveJson, after: WaveJson): boolean {
+  const a = signalAt(path, before)
+  const b = signalAt(path, after)
+  return !!a && !!b && a.name === b.name
 }
 
 /**
@@ -126,9 +138,9 @@ export const useEditor = create<EditorState>((set, get) => ({
         editSource: 'text',
         parseError: null,
         skinName: (res.model!.config?.skin as SkinName) ?? state.skinName,
-        // A text edit may have removed/reordered signals — drop a now-stale
-        // selection so the panels don't edit the wrong row.
-        selectedPath: pathResolvesToSignal(state.selectedPath, res.model!)
+        // A text edit may have removed/reordered/inserted signals — drop the
+        // selection unless it still points at the same signal.
+        selectedPath: selectionSurvives(state.selectedPath, state.model, res.model!)
           ? state.selectedPath
           : null,
       }))
@@ -184,6 +196,7 @@ useEditor.subscribe((state) => {
   lastSavedModel = state.model
   if (saveTimer) window.clearTimeout(saveTimer)
   saveTimer = window.setTimeout(() => {
+    saveTimer = undefined // clear so the pagehide flush guard stays meaningful
     try {
       localStorage.setItem(STORAGE_KEY, serializeModel(state.model))
     } catch {
