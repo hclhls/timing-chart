@@ -44,7 +44,7 @@ export function BusDataPanel() {
             <input
               value={data[i] ?? ''}
               placeholder="値"
-              onChange={(e) => applyGuiModel(setDataLabel(model, selectedPath, i, e.target.value))}
+              onChange={(e) => applyGuiModel(setDataLabel(model, selectedPath, i, e.target.value), true)}
             />
           </label>
         ))}

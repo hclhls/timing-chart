@@ -166,10 +166,36 @@ export function SignalTable() {
                         aria-label="グループ名"
                         value={row.label ?? ''}
                         onChange={(e) =>
-                          applyGuiModel(setGroupLabel(model, row.path, e.target.value))
+                          applyGuiModel(setGroupLabel(model, row.path, e.target.value), true)
                         }
                       />
                       <span className="group-controls">
+                        <button
+                          onClick={() => {
+                            const next = moveRow(model, row.path.slice(0, -1), -1)
+                            if (next !== model) {
+                              setSelectedPath(null)
+                              applyGuiModel(next)
+                            }
+                          }}
+                          title="グループを上へ"
+                          aria-label="グループを上へ移動"
+                        >
+                          ▲
+                        </button>
+                        <button
+                          onClick={() => {
+                            const next = moveRow(model, row.path.slice(0, -1), 1)
+                            if (next !== model) {
+                              setSelectedPath(null)
+                              applyGuiModel(next)
+                            }
+                          }}
+                          title="グループを下へ"
+                          aria-label="グループを下へ移動"
+                        >
+                          ▼
+                        </button>
                         <button
                           onClick={() => applyGuiModel(addSignalToGroup(model, row.path))}
                           title="このグループに信号を追加"
@@ -222,7 +248,7 @@ export function SignalTable() {
                       placeholder="信号名"
                       value={sig.name ?? ''}
                       onChange={(e) =>
-                        applyGuiModel(setSignalName(model, row.path, e.target.value))
+                        applyGuiModel(setSignalName(model, row.path, e.target.value), true)
                       }
                       onClick={(e) => e.stopPropagation()}
                     />
@@ -274,6 +300,7 @@ function RowControls({ path }: { path: number[] }) {
   // Indices shift on remove/move, so any held selection would now point at a
   // different signal — deselect to avoid silently editing the wrong row.
   const restructure = (next: ReturnType<typeof moveRow>) => {
+    if (next === model) return // boundary no-op — don't churn history/selection
     setSelectedPath(null)
     applyGuiModel(next)
   }

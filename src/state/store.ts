@@ -96,8 +96,12 @@ export interface EditorState {
   /** Redo stack (snapshots undone, most-recently-undone last). */
   future: WaveJson[]
 
-  /** Apply a model produced by the GUI; regenerates the text buffer. */
-  applyGuiModel: (model: WaveJson) => void
+  /**
+   * Apply a model produced by the GUI; regenerates the text buffer.
+   * `coalesceText` collapses a run of inline text-field edits (signal/group
+   * name, bus label) into ONE undo step instead of one-per-keystroke.
+   */
+  applyGuiModel: (model: WaveJson, coalesceText?: boolean) => void
   /** Update the raw text buffer without parsing (responsive typing). */
   setText: (text: string) => void
   /** Parse the current text buffer and, if valid, promote it to the model. */
@@ -140,11 +144,13 @@ export const useEditor = create<EditorState>((set, get) => ({
   past: [],
   future: [],
 
-  applyGuiModel: (model) => {
+  applyGuiModel: (model, coalesceText = false) => {
     detachShareHash() // first edit after opening a share link → own working copy
-    lastChangeWasText = false
+    // Coalesce consecutive inline text-field edits into one undo step.
+    const coalesce = coalesceText && lastChangeWasText
+    lastChangeWasText = coalesceText
     set((state) => ({
-      ...histPush(state),
+      ...(coalesce ? {} : histPush(state)),
       model,
       lastValidModel: model,
       // Don't clobber the text buffer the user is actively typing in.

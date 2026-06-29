@@ -213,11 +213,23 @@ export function moveRow(model: WaveJson, path: number[], dir: -1 | 1): WaveJson 
   return { ...model, signal: updateLane(model.signal, parentPath, (g) => swap(g as WaveLane[])) }
 }
 
+/** Existing group label strings anywhere in the model. */
+function existingGroupLabels(model: WaveJson): Set<string> {
+  const labels = new Set<string>()
+  for (const row of flattenSignals(model)) {
+    if (row.kind === 'group-label' && row.label) labels.add(row.label)
+  }
+  return labels
+}
+
 /** Append a new group `["ラベル", {新規信号}]` at the top level. */
 export function addGroup(model: WaveJson): WaveJson {
   const ticks = currentMaxTicks(model)
   const wave = '0'.padEnd(ticks, '.')
-  const group: WaveLane = ['グループ', { name: uniqueName(model, 'sig'), wave }]
+  const used = existingGroupLabels(model)
+  let label = 'グループ'
+  for (let n = 2; used.has(label); n++) label = `グループ${n}`
+  const group: WaveLane = [label, { name: uniqueName(model, 'sig'), wave }]
   return { ...model, signal: [...model.signal, group] }
 }
 
