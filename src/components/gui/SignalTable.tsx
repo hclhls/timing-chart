@@ -250,9 +250,27 @@ export function SignalTable() {
     if (signalPaths[nr]) setSelectedPath(signalPaths[nr])
   }
 
+  // period/phase stretch a signal's wave beyond 1-tick-per-char, but the grid,
+  // ±時間 and markers all count raw chars — so cells visually misalign with the
+  // preview. The GUI can't safely edit those yet; steer the user to the code tab
+  // rather than letting them paint onto a lying grid.
+  const hasPeriodPhase = rows.some(
+    (r) =>
+      r.kind === 'signal' &&
+      !!r.signal &&
+      ((r.signal.period != null && r.signal.period !== 1) ||
+        (r.signal.phase != null && r.signal.phase !== 0)),
+  )
+
   return (
     <section className="signal-table">
       <div className="pane-title">信号エディタ</div>
+
+      {hasPeriodPhase && (
+        <div className="grid-warning" role="status">
+          ⚠ 一部の信号に period／phase が設定されています。マス目の編集だとプレビューと位置がずれて見えることがあります。微調整は「コード（上級者）」タブで行ってください。
+        </div>
+      )}
 
       <div className="table-toolbar">
         <button onClick={() => applyGuiModel(addSignal(model))}>＋信号</button>
