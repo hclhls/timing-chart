@@ -70,9 +70,15 @@ function withData(sig: WaveSignal, data: string[]): WaveSignal {
  * is added or removed.
  */
 function remapData(oldWave: string, oldData: string[], newWave: string): string[] {
+  const oldHeads = busHeadTicks(oldWave)
   const byTick = new Map<number, string>()
-  busHeadTicks(oldWave).forEach((t, k) => byTick.set(t, oldData[k] ?? ''))
-  return busHeadTicks(newWave).map((t) => byTick.get(t) ?? '')
+  oldHeads.forEach((t, k) => byTick.set(t, oldData[k] ?? ''))
+  const mapped = busHeadTicks(newWave).map((t) => byTick.get(t) ?? '')
+  // Preserve surplus labels (data[] longer than the segment count). setDataLabel
+  // deliberately keeps them (WaveDrom holds extras for future segments); without
+  // this, any cell edit or ±時間 on ANY signal would silently truncate them.
+  const surplus = oldData.slice(oldHeads.length)
+  return surplus.length ? [...mapped, ...surplus] : mapped
 }
 
 /** Node-marker letters referenced by an edge spec (the part before any label). */

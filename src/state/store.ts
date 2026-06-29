@@ -27,7 +27,15 @@ function signalAt(path: number[] | null, model: WaveJson) {
 function selectionSurvives(path: number[] | null, before: WaveJson, after: WaveJson): boolean {
   const a = signalAt(path, before)
   const b = signalAt(path, after)
-  return !!a && !!b && a.name === b.name
+  if (!a || !b || a.name !== b.name) return false
+  // Names aren't guaranteed unique (the user can hand-type duplicates). If more
+  // than one signal in `after` shares this name, a reorder could have swapped
+  // them without the name check noticing — drop the selection rather than risk
+  // the panels editing the wrong same-named row.
+  const dupes = flattenSignals(after).filter(
+    (r) => r.kind === 'signal' && r.signal?.name === b.name,
+  ).length
+  return dupes <= 1
 }
 
 /**
