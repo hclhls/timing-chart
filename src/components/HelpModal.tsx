@@ -82,8 +82,8 @@ export function HelpModal({ onClose, onStartBlank, onLoadExample }: Props) {
             <b>「＋信号」</b>で行を追加（または下にあるサンプルをそのまま編集）
           </li>
           <li>
-            表の<b>マスをクリック</b>して <b>High / Low</b> を切り替え。上の「状態」から
-            <b>クロック・バス</b>なども選べます
+            表の<b>マスをクリック</b>して <b>High / Low</b> を切り替え（
+            <b>ドラッグ</b>で連続して塗れます）。上の「状態」から<b>クロック・バス</b>なども選べます
           </li>
           <li>
             右の<b>プレビュー</b>に図がその場で出ます。<b>「PNG」</b>で画像として保存

@@ -181,7 +181,10 @@ export function makeClock(model: WaveJson, path: number[]): WaveJson {
 
 /** Append a new signal at the top level, with a unique name. */
 export function addSignal(model: WaveJson, base = '信号'): WaveJson {
-  const ticks = currentMaxTicks(model)
+  // Match existing signals' length, but give the FIRST signal a comfortable 8
+  // columns so a blank document has room to draw (not a single cell).
+  const hasSignals = flattenSignals(model).some((r) => r.kind === 'signal')
+  const ticks = hasSignals ? currentMaxTicks(model) : 8
   const wave = '0'.padEnd(ticks, '.')
   return { ...model, signal: [...model.signal, { name: uniqueName(model, base), wave }] }
 }

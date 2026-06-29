@@ -1012,14 +1012,18 @@ body {
   .tabbar .preview-tab {
     display: inline-block;
   }
-  /* Show only the active tab's pane. */
+  /* Show only the active tab's pane — EXCEPT keep a short preview strip under
+     the editor on the 編集 tab so "draw → see the figure" stays intact. */
   .workspace[data-tab='gui'] .pane-text,
-  .workspace[data-tab='gui'] .pane-preview,
   .workspace[data-tab='text'] .pane-editor,
   .workspace[data-tab='text'] .pane-preview,
   .workspace[data-tab='preview'] .pane-editor,
   .workspace[data-tab='preview'] .pane-text {
     display: none;
+  }
+  .workspace[data-tab='gui'] .pane-preview {
+    max-height: 240px;
+    border-top: 2px solid var(--border);
   }
 
   /* Wrap the toolbar so every action stays visible (no hidden offscreen scroll). */
