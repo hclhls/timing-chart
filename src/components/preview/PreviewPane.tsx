@@ -30,6 +30,9 @@ export function PreviewPane() {
           onRendered={onRendered}
           onError={onError}
         />
+        {(model.signal?.length ?? 0) === 0 && (
+          <div className="preview-empty">信号を追加すると、ここに波形が表示されます</div>
+        )}
       </div>
     </section>
   )
