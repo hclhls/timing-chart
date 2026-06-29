@@ -137,6 +137,32 @@ export function setSignalNode(model: WaveJson, path: number[], node: string): Wa
   return cleanupEdges(next)
 }
 
+/** Set a signal's clock period (time stretch). Dropped when 1 (the default) so
+ *  the exported JSON stays clean. period=2 → the wave draws twice as wide, i.e.
+ *  a ÷2 divided clock relative to a period-1 signal. */
+export function setSignalPeriod(model: WaveJson, path: number[], period: number): WaveJson {
+  return updateSignal(model, path, (sig) => {
+    if (!Number.isFinite(period) || period === 1) {
+      const { period: _p, ...rest } = sig
+      void _p
+      return rest
+    }
+    return { ...sig, period: Math.max(0.1, period) }
+  })
+}
+
+/** Set a signal's phase shift (in periods). Dropped when 0 (the default). */
+export function setSignalPhase(model: WaveJson, path: number[], phase: number): WaveJson {
+  return updateSignal(model, path, (sig) => {
+    if (!Number.isFinite(phase) || phase === 0) {
+      const { phase: _p, ...rest } = sig
+      void _p
+      return rest
+    }
+    return { ...sig, phase }
+  })
+}
+
 /** Replace the data label at bus-segment index `dataIndex` (kept in sync). */
 export function setDataLabel(
   model: WaveJson,
