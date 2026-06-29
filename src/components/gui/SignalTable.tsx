@@ -166,12 +166,14 @@ export function SignalTable() {
         <button onClick={() => applyGuiModel(addGroup(model))}>＋グループ</button>
         <button onClick={() => applyGuiModel(addSpacer(model))}>＋空行</button>
         <span className="sep" />
-        <button onClick={() => applyGuiModel(removeTick(model))} title="tickを減らす">
-          − tick
+        <button onClick={() => applyGuiModel(removeTick(model))} title="時間のコマ（列）を減らす">
+          − コマ
         </button>
-        <span className="tick-count">{ticks} tick</span>
-        <button onClick={() => applyGuiModel(addTick(model))} title="tickを増やす">
-          ＋ tick
+        <span className="tick-count" title="時間のコマ数（横の列数）">
+          {ticks} コマ
+        </span>
+        <button onClick={() => applyGuiModel(addTick(model))} title="時間のコマ（列）を増やす">
+          ＋ コマ
         </button>
       </div>
 

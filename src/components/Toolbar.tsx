@@ -141,38 +141,56 @@ export function Toolbar() {
       </div>
 
       <div className="tb-group">
-        <select value={clockKind} onChange={(e) => setClockKind(e.target.value as ClockKind)}>
-          <option value="P">clk ↑矢印</option>
-          <option value="N">clk ↓矢印</option>
-          <option value="p">clk 正</option>
-          <option value="n">clk 負</option>
+        <button onClick={addClock} title="周期的なクロック信号を1本追加します">
+          ＋クロック
+        </button>
+        <select
+          value={clockKind}
+          onChange={(e) => setClockKind(e.target.value as ClockKind)}
+          title="クロックの種類"
+        >
+          <option value="P">↑立ち上がり（矢印）</option>
+          <option value="N">↓立ち下がり（矢印）</option>
+          <option value="p">↑立ち上がり</option>
+          <option value="n">↓立ち下がり</option>
         </select>
-        <button onClick={addClock}>クロック生成</button>
       </div>
 
       <div className="tb-group">
-        <label>
-          スキン
-          <select value={skinName} onChange={(e) => setSkin(e.target.value as SkinName)}>
-            {SKIN_NAMES.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      <div className="tb-group">
-        <button onClick={exportSvg}>SVG</button>
-        <select value={pngScale} onChange={(e) => setPngScale(Number(e.target.value))}>
+        <button onClick={exportPng}>PNG保存</button>
+        <select value={pngScale} onChange={(e) => setPngScale(Number(e.target.value))} title="PNGの倍率">
           <option value={1}>1×</option>
           <option value={2}>2×</option>
           <option value={4}>4×</option>
         </select>
-        <button onClick={exportPng}>PNG</button>
-        <button onClick={exportJson}>JSON保存</button>
-        <button onClick={() => fileRef.current?.click()}>JSON読込</button>
+        <button onClick={share}>共有リンク</button>
+      </div>
+
+      <details className="adv-menu">
+        <summary title="その他・上級者向け">⚙ その他</summary>
+        <div className="adv-pop">
+          <button onClick={exportSvg}>SVGで保存</button>
+          <button onClick={exportJson}>JSONで保存</button>
+          <button onClick={() => fileRef.current?.click()}>JSONを読込</button>
+          <label className="adv-row">
+            スキン（見た目）
+            <select value={skinName} onChange={(e) => setSkin(e.target.value as SkinName)}>
+              {SKIN_NAMES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            onClick={toggleBridge}
+            title={`Claude Code連携: ${DEFAULT_BRIDGE_URL} と双方向同期（開発者向け）`}
+            className={bridgeOn ? 'bridge-btn on' : 'bridge-btn'}
+          >
+            <span className={`bridge-dot ${bridgeStatus}`} />
+            ブリッジ{bridgeOn ? '切断' : '接続'}（開発者向け）
+          </button>
+        </div>
         <input
           ref={fileRef}
           type="file"
@@ -180,19 +198,7 @@ export function Toolbar() {
           hidden
           onChange={onLoadFile}
         />
-      </div>
-
-      <div className="tb-group">
-        <button onClick={share}>共有リンク</button>
-        <button
-          onClick={toggleBridge}
-          title={`Claude Code連携: ${DEFAULT_BRIDGE_URL} と双方向同期`}
-          className={bridgeOn ? 'bridge-btn on' : 'bridge-btn'}
-        >
-          <span className={`bridge-dot ${bridgeStatus}`} />
-          ブリッジ{bridgeOn ? '切断' : '接続'}
-        </button>
-      </div>
+      </details>
 
       <span
         className={viewingShared ? 'save-status shared' : 'save-status'}

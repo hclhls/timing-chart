@@ -87,6 +87,50 @@ body {
   padding: 3px 6px;
   background: #fff;
 }
+.adv-menu {
+  position: relative;
+}
+.adv-menu > summary {
+  cursor: pointer;
+  list-style: none;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+.adv-menu > summary::-webkit-details-marker {
+  display: none;
+}
+.adv-menu[open] > summary {
+  background: var(--accent-weak);
+  border-color: var(--accent);
+}
+.adv-pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 50;
+  min-width: 200px;
+}
+.adv-pop button,
+.adv-pop select {
+  white-space: nowrap;
+}
+.adv-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: space-between;
+  color: var(--muted);
+}
 .bridge-btn {
   display: inline-flex;
   align-items: center;
