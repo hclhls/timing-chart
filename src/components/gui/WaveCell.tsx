@@ -41,7 +41,12 @@ export function WaveCell({
       title={label}
       aria-label={label}
     >
-      <span className="glyph">{glyph(value, busLabel)}</span>
+      <span className="glyph">
+        {/* A bus segment's value sits on its head cell; the continuation cells
+            are already tinted by the bus fill, so repeating "=" there just
+            reads like separate values. Blank them. */}
+        {!isHead && isBusState(value) ? '' : glyph(value, busLabel)}
+      </span>
     </button>
   )
 }
