@@ -78,6 +78,11 @@ export function EdgeEditor() {
             マーカー追加
           </button>
         </div>
+        {!selectedPath && (
+          <div className="muted edge-hint">
+            ↑ まず左の表で信号の行（マス）をクリックして選ぶと、その位置にマーカーを置けます
+          </div>
+        )}
         <div className="edge-markers">
           {letters.length === 0 ? (
             <span className="muted">マーカー未配置</span>

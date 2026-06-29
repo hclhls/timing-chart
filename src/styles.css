@@ -919,6 +919,12 @@ body {
   color: var(--muted);
   font-size: 13px;
 }
+.edge-hint {
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: var(--accent-weak);
+  border-radius: 6px;
+}
 
 /* ---- Diagram title / time-axis panel ---- */
 .labels-panel {
