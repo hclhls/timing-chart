@@ -5,7 +5,7 @@ import { uniqueName } from '../state/actions'
 import { clockWave, type ClockKind } from '../model/clockgen'
 import { serializeModel } from '../model/serialize'
 import { parseModel } from '../model/parse'
-import { SKIN_NAMES, type SkinName } from '../render/skins'
+import { SKIN_NAMES, SKIN_BG, type SkinName } from '../render/skins'
 import { getLatestSvg } from '../export/svgRegistry'
 import { svgToString } from '../export/svg'
 import { svgToPngBlob } from '../export/png'
@@ -59,7 +59,7 @@ export function Toolbar() {
     const svg = getLatestSvg()
     if (!svg) return flash('描画SVGが見つかりません')
     try {
-      const blob = await svgToPngBlob(svg, pngScale)
+      const blob = await svgToPngBlob(svg, pngScale, SKIN_BG[skinName])
       downloadBlob(blob, 'timing-chart.png')
     } catch (e) {
       flash(e instanceof Error ? e.message : 'PNG出力に失敗')
@@ -153,7 +153,9 @@ export function Toolbar() {
         <button onClick={share}>共有リンク</button>
       </div>
 
-      {toast && <span className="toast">{toast}</span>}
+      <span className="toast-region" role="status" aria-live="polite">
+        {toast && <span className="toast">{toast}</span>}
+      </span>
     </header>
   )
 }

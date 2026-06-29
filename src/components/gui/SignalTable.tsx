@@ -18,7 +18,9 @@ import { WaveCell } from './WaveCell'
 function cycle(value: string, dir: 1 | -1): string {
   const states = CYCLE_STATES as readonly string[]
   const idx = states.indexOf(value)
-  if (idx < 0) return dir > 0 ? states[0] : states[states.length - 1]
+  // Unknown state (d/u/h/l/H/L/2..9/'|'/sub-cycle '<>') — leave it untouched
+  // rather than clobbering a valid waveform the GUI can't yet cycle through.
+  if (idx < 0) return value
   return states[(idx + dir + states.length) % states.length]
 }
 
@@ -42,6 +44,7 @@ export function SignalTable() {
     const cells = expandWave(sig?.wave ?? '')
     const cur = cells[tick]?.value ?? '0'
     const next = cycle(cur, e.shiftKey ? -1 : 1)
+    if (next === cur) return // unknown state — no-op, don't churn the model
     applyGuiModel(setCellState(model, path, tick, next))
   }
 
@@ -113,6 +116,8 @@ export function SignalTable() {
                   <td className="name-col" style={{ paddingLeft: 4 + row.depth * 12 }}>
                     <input
                       className="name-input"
+                      aria-label="信号名"
+                      placeholder="信号名"
                       value={sig.name ?? ''}
                       onChange={(e) =>
                         applyGuiModel(setSignalName(model, row.path, e.target.value))
@@ -175,6 +180,7 @@ function RowControls({ path }: { path: number[] }) {
         disabled={!topLevel}
         onClick={() => restructure(moveRow(model, path, -1))}
         title="上へ"
+        aria-label="信号を上へ移動"
       >
         ▲
       </button>
@@ -182,10 +188,15 @@ function RowControls({ path }: { path: number[] }) {
         disabled={!topLevel}
         onClick={() => restructure(moveRow(model, path, 1))}
         title="下へ"
+        aria-label="信号を下へ移動"
       >
         ▼
       </button>
-      <button onClick={() => restructure(removeRow(model, path))} title="削除">
+      <button
+        onClick={() => restructure(removeRow(model, path))}
+        title="削除"
+        aria-label="この信号を削除"
+      >
         ×
       </button>
     </span>

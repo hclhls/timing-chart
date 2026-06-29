@@ -29,10 +29,23 @@ export function parseModel(text: string): ParseResult {
   if (!Array.isArray(obj.signal)) {
     return { ok: false, error: '"signal" 配列が必要です' }
   }
+  // Every lane must be a signal object, a group label string, or a nested
+  // group array. A stray null/number would crash the editor (Object.keys(null))
+  // and, once autosaved, trap the app on reload — reject it up front.
+  const badLane = !obj.signal.every((lane) => isValidLane(lane))
+  if (badLane) {
+    return { ok: false, error: '"signal" の各要素はオブジェクト/配列/文字列である必要があります' }
+  }
   if (obj.edge !== undefined && !Array.isArray(obj.edge)) {
     return { ok: false, error: '"edge" は配列である必要があります' }
   }
   return { ok: true, model: value as WaveJson }
+}
+
+function isValidLane(lane: unknown): boolean {
+  if (typeof lane === 'string') return true
+  if (Array.isArray(lane)) return lane.every((l) => isValidLane(l))
+  return typeof lane === 'object' && lane !== null
 }
 
 function formatJson5Error(e: unknown): string {

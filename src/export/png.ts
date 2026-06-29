@@ -8,8 +8,11 @@ import { svgToString, svgPixelSize } from './svg'
 const MAX_SIDE = 16384
 const MAX_AREA = 16384 * 8192
 
-export async function svgToPngBlob(svg: SVGSVGElement, scale = 2): Promise<Blob> {
-  const { width, height } = svgPixelSize(svg)
+export async function svgToPngBlob(svg: SVGSVGElement, scale = 2, bg = '#ffffff'): Promise<Blob> {
+  const raw = svgPixelSize(svg)
+  // Guard against degenerate viewBox values (0/negative/NaN) before scaling.
+  const width = Number.isFinite(raw.width) && raw.width > 0 ? raw.width : 600
+  const height = Number.isFinite(raw.height) && raw.height > 0 ? raw.height : 200
   // Clamp the effective scale so a large chart at 4× can't silently exceed the
   // canvas dimension/area limit and make toBlob return null.
   const sideCap = Math.min(MAX_SIDE / width, MAX_SIDE / height)
@@ -33,8 +36,8 @@ export async function svgToPngBlob(svg: SVGSVGElement, scale = 2): Promise<Blob>
   canvas.height = Math.max(1, Math.round(height * eff))
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('Canvas 2D コンテキストを取得できませんでした')
-  // White background (WaveDrom SVG is transparent).
-  ctx.fillStyle = '#ffffff'
+  // WaveDrom SVG is transparent — fill with the skin's background.
+  ctx.fillStyle = bg
   ctx.fillRect(0, 0, canvas.width, canvas.height)
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
 

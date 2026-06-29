@@ -7,6 +7,14 @@ export type SkinName = 'default' | 'narrow' | 'lowkey' | 'dark'
 
 export const SKIN_NAMES: SkinName[] = ['default', 'narrow', 'lowkey', 'dark']
 
+/** Background color each skin is designed to be viewed/exported against. */
+export const SKIN_BG: Record<SkinName, string> = {
+  default: '#ffffff',
+  narrow: '#ffffff',
+  lowkey: '#ffffff',
+  dark: '#202020',
+}
+
 // Each wavedrom skin module exports under its own key, e.g. { dark: [...] }.
 // WaveDrom's renderer selects the lane params via `waveSkin[config.skin]` and
 // falls back to `waveSkin.default`. Merging every skin into one object lets us

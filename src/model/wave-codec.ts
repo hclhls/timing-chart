@@ -55,13 +55,6 @@ export function busHeadTicks(wave: string): number[] {
   return ticks
 }
 
-/** Resize a node-marker string to `len` ticks (pad with '.' / truncate). */
-export function resizeNode(node: string, len: number): string {
-  const chars = node.split('')
-  if (chars.length > len) chars.length = len
-  while (chars.length < len) chars.push('.')
-  return chars.join('')
-}
 
 /** Compress a Cell array back into a wave string (lossless inverse of expand). */
 export function compressCells(cells: Cell[]): string {

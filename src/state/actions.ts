@@ -7,7 +7,6 @@ import {
   setTick,
   extendTick,
   resizeWave,
-  resizeNode,
   busHeadTicks,
   isBusState,
 } from '../model/wave-codec'
@@ -139,12 +138,13 @@ export function setDataLabel(
   label: string,
 ): WaveJson {
   return updateSignal(model, path, (sig) => {
-    const segments = sig.wave ? busHeadTicks(sig.wave).length : 0
+    // Pad up to the edited index but DON'T truncate: WaveDrom keeps surplus
+    // data labels (reserved for future segments); dropping them loses work.
     const arr = dataToArray(sig.data)
-    while (arr.length < segments) arr.push('')
-    arr.length = segments
-    if (dataIndex >= 0 && dataIndex < arr.length) arr[dataIndex] = label
-    return withData({ ...sig, wave: sig.wave }, arr)
+    if (dataIndex < 0) return sig
+    while (arr.length <= dataIndex) arr.push('')
+    arr[dataIndex] = label
+    return withData({ ...sig }, arr)
   })
 }
 
@@ -205,24 +205,18 @@ function currentMaxTicks(model: WaveJson): number {
   return Math.max(max, 1)
 }
 
-/** Resize one signal's wave AND its node string, remapping data by position. */
+/**
+ * Resize one signal's wave, remapping data by position. Node markers and edges
+ * are intentionally LEFT INTACT: WaveDrom renders markers/edges that fall
+ * outside the (shorter) wave without error, so a transient shrink must not
+ * silently destroy annotations — they reappear when the wave grows back.
+ */
 function resizeSignal(sig: WaveSignal, len: number): WaveSignal {
   if (sig.wave === undefined) return sig
   const oldWave = sig.wave
   const wave = resizeWave(oldWave, len)
   const data = remapData(oldWave, dataToArray(sig.data), wave)
-  let next = withData({ ...sig, wave }, data)
-  if (sig.node) {
-    const node = resizeNode(sig.node, wave.length)
-    next = node.replace(/\./g, '').length === 0 ? stripNode(next) : { ...next, node }
-  }
-  return next
-}
-
-function stripNode(sig: WaveSignal): WaveSignal {
-  const { node: _n, ...rest } = sig
-  void _n
-  return rest
+  return withData({ ...sig, wave }, data)
 }
 
 function mapSignals(model: WaveJson, fn: (sig: WaveSignal) => WaveSignal): WaveJson {
@@ -233,7 +227,8 @@ function mapSignals(model: WaveJson, fn: (sig: WaveSignal) => WaveSignal): WaveJ
       if (Object.keys(lane).length === 0) return lane
       return fn(lane as WaveSignal)
     })
-  return cleanupEdges({ ...model, signal: rec(model.signal) })
+  // No edge cleanup here: resizing is not a delete, so it must not drop edges.
+  return { ...model, signal: rec(model.signal) }
 }
 
 /** Grow every signal's wave by one tick. */

@@ -142,7 +142,9 @@ export function EdgeEditor() {
             {edges.map((e, i) => (
               <li key={i}>
                 <code>{e}</code>
-                <button onClick={() => removeEdge(i)}>×</button>
+                <button onClick={() => removeEdge(i)} title="注釈を削除" aria-label="注釈を削除">
+                  ×
+                </button>
               </li>
             ))}
           </ul>

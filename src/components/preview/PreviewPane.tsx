@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { useEditor } from '../../state/store'
 import { WaveDromRenderer } from '../../render/WaveDromRenderer'
 import { setLatestSvg } from '../../export/svgRegistry'
+import { SKIN_BG } from '../../render/skins'
 
 export function PreviewPane() {
   const model = useEditor((s) => s.lastValidModel)
@@ -22,7 +23,7 @@ export function PreviewPane() {
       {renderError && (
         <div className="banner banner-error">描画エラー: {renderError}</div>
       )}
-      <div className="preview-scroll">
+      <div className="preview-scroll" style={{ background: SKIN_BG[skin] }}>
         <WaveDromRenderer
           model={model}
           skin={skin}

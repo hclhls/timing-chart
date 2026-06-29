@@ -3,7 +3,7 @@
   --panel: #ffffff;
   --border: #d9dde3;
   --text: #1c2230;
-  --muted: #7a8290;
+  --muted: #5b6472; /* >=4.5:1 on white/light bg for WCAG AA */
   --accent: #2f6df6;
   --accent-weak: #e7eefc;
   --error: #c0362c;
@@ -82,8 +82,10 @@ body {
   padding: 3px 6px;
   background: #fff;
 }
-.toast {
+.toast-region {
   margin-left: auto;
+}
+.toast {
   background: #111827;
   color: #fff;
   padding: 4px 10px;
@@ -169,7 +171,8 @@ body {
   padding: 2px 4px;
 }
 .name-input {
-  width: 90px;
+  width: 100%;
+  min-width: 80px;
   border: 1px solid transparent;
   background: transparent;
   border-radius: 4px;
@@ -248,10 +251,13 @@ body {
   background: #fafbfc;
   align-items: flex-start;
 }
-.state-clkp,
-.state-clkn {
+.state-clkp {
   background: #eef6ff;
   color: var(--accent);
+}
+.state-clkn {
+  background: #f0eaff;
+  color: #6b3fd4;
 }
 .state-bus {
   background: #fff7e6;
@@ -264,7 +270,7 @@ body {
 }
 .state-z {
   background: #f0f0f0;
-  color: var(--muted);
+  color: #4a5160;
 }
 .state-gap {
   background: #f7f7f7;
@@ -416,4 +422,49 @@ body {
 }
 .wavedrom-host svg {
   max-width: none;
+}
+
+/* ---- Crash recovery ---- */
+.crash-panel {
+  max-width: 640px;
+  margin: 60px auto;
+  padding: 24px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.crash-panel h1 {
+  font-size: 18px;
+  margin-top: 0;
+}
+.crash-detail {
+  background: #fdecea;
+  color: var(--error);
+  padding: 8px;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.crash-panel button {
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 6px;
+  padding: 6px 12px;
+}
+
+/* ---- Responsive: collapse the 3-column layout on narrow viewports ---- */
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: 1fr 1fr;
+    overflow: auto;
+  }
+  .col-preview {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 720px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
 }

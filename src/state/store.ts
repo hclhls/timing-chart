@@ -124,10 +124,21 @@ export const useEditor = create<EditorState>((set, get) => ({
 }))
 
 // Autosave the canonical model so a reload/accidental close doesn't lose work.
+// Gate on MODEL identity so unrelated changes (selection, focus, skin, notice)
+// don't trigger a save — critically, merely opening + clicking around a shared
+// link (which only changes selection) must not overwrite the user's own work.
+// Debounced so rapid edits don't hammer synchronous localStorage I/O.
+let lastSavedModel: WaveJson = startModel
+let saveTimer: number | undefined
 useEditor.subscribe((state) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, serializeModel(state.model))
-  } catch {
-    // storage full / disabled — best-effort autosave, ignore.
-  }
+  if (state.model === lastSavedModel) return
+  lastSavedModel = state.model
+  if (saveTimer) window.clearTimeout(saveTimer)
+  saveTimer = window.setTimeout(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, serializeModel(state.model))
+    } catch {
+      // storage full / disabled — best-effort autosave, ignore.
+    }
+  }, 400)
 })

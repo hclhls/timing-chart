@@ -11,8 +11,9 @@ interface Props {
 export function WaveCell({ value, isHead, busLabel, onClick }: Props) {
   const cls = ['wave-cell', `state-${stateClass(value)}`]
   if (!isHead) cls.push('extension')
+  const label = describe(value, busLabel)
   return (
-    <button className={cls.join(' ')} onClick={onClick} title={describe(value)}>
+    <button className={cls.join(' ')} onClick={onClick} title={label} aria-label={label}>
       <span className="glyph">{glyph(value, busLabel)}</span>
     </button>
   )
@@ -50,11 +51,11 @@ function glyph(v: string, busLabel: string): string {
     case '1':
       return '1'
     case 'p':
-      return '⌐⌐'
+      return '⊓⊔' // posedge clock: rises first
     case 'P':
       return '↑'
     case 'n':
-      return '⌐⌐'
+      return '⊔⊓' // negedge clock: falls first
     case 'N':
       return '↓'
     case 'x':
@@ -68,15 +69,15 @@ function glyph(v: string, busLabel: string): string {
   }
 }
 
-function describe(v: string): string {
-  if (isBusState(v)) return `バス値 (${v})`
+function describe(v: string, busLabel = ''): string {
+  if (isBusState(v)) return `バス値${busLabel ? ': ' + busLabel : ' (' + v + ')'}`
   const map: Record<string, string> = {
     '0': 'Low',
     '1': 'High',
-    p: 'クロック (正)',
-    P: 'クロック (正・矢印)',
-    n: 'クロック (負)',
-    N: 'クロック (負・矢印)',
+    p: 'クロック (正エッジ)',
+    P: 'クロック (正エッジ・矢印)',
+    n: 'クロック (負エッジ)',
+    N: 'クロック (負エッジ・矢印)',
     x: '不定 (X)',
     z: 'ハイインピーダンス (Z)',
     '|': 'ギャップ',
