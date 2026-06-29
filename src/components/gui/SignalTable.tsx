@@ -40,11 +40,11 @@ const PRIMARY: { v: Brush; label: string }[] = [
   { v: '0', label: 'Low（オフ）' },
   { v: 'p', label: 'クロック' },
   { v: '=', label: 'バス（値）' },
-  { v: 'x', label: '不定 X' },
-  { v: 'z', label: 'Z（切断）' },
-  { v: 'cycle', label: '順送り' },
 ]
 const DETAIL: { v: string; label: string }[] = [
+  { v: 'x', label: '不定 X（未確定）' },
+  { v: 'z', label: 'Z（切断）' },
+  { v: 'cycle', label: '順送り（クリックで次へ）' },
   { v: 'P', label: 'クロック（矢印つき）' },
   { v: 'n', label: 'クロック↓' },
   { v: 'N', label: 'クロック↓（矢印）' },
@@ -57,6 +57,16 @@ const DETAIL: { v: string; label: string }[] = [
   { v: '8', label: 'バス8' },
   { v: '9', label: 'バス9' },
   { v: '|', label: 'ギャップ' },
+]
+// Persistent legend (the same meanings as the welcome modal, always available).
+const LEGEND_STRIP: { sample: string; cls: string; text: string }[] = [
+  { sample: '1', cls: 'state-high', text: 'High（オン）' },
+  { sample: '0', cls: 'state-low', text: 'Low（オフ）' },
+  { sample: '⊓⊔', cls: 'state-clkp', text: 'クロック' },
+  { sample: 'A', cls: 'state-bus state-bus-3', text: 'バス（値）' },
+  { sample: '✕', cls: 'state-x', text: '不定（X）' },
+  { sample: 'Z', cls: 'state-z', text: 'Z（切断）' },
+  { sample: '┊', cls: 'state-gap', text: 'ギャップ' },
 ]
 const BRUSH_LABEL: Record<string, string> = Object.fromEntries(
   [...PRIMARY, ...DETAIL].filter((b) => b.v !== null).map((b) => [b.v as string, b.label]),
@@ -380,6 +390,18 @@ export function SignalTable() {
           キーボード: 矢印=移動 / Enter・Space=適用 / Alt+Enter=延長
         </span>
       </p>
+
+      <details className="legend-strip">
+        <summary>記号の見かた</summary>
+        <ul className="legend-row">
+          {LEGEND_STRIP.map((l) => (
+            <li key={l.text}>
+              <span className={`legend-chip wave-cell ${l.cls}`}>{l.sample}</span>
+              {l.text}
+            </li>
+          ))}
+        </ul>
+      </details>
     </section>
   )
 }

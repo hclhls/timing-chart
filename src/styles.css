@@ -424,7 +424,8 @@ body {
   min-width: 48px;
   text-align: center;
 }
-/* Always-visible, labeled state picker (novice-friendly). */
+/* Always-visible, labeled state picker (novice-friendly). Sticky so the active
+   "what will I place" mode stays in view while editing the grid below. */
 .state-picker {
   display: flex;
   flex-wrap: wrap;
@@ -435,6 +436,9 @@ body {
   background: var(--accent-weak);
   border: 1px solid #cfe0fb;
   border-radius: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
 .state-picker-label {
   font-size: 12px;
@@ -474,6 +478,47 @@ body {
 }
 .hint-sub {
   color: var(--muted);
+}
+.legend-strip {
+  margin-top: 8px;
+}
+.legend-strip > summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--accent);
+  list-style: none;
+  padding: 2px 0;
+}
+.legend-strip > summary::-webkit-details-marker {
+  display: none;
+}
+.legend-strip > summary::before {
+  content: '▸ ';
+}
+.legend-strip[open] > summary::before {
+  content: '▾ ';
+}
+.legend-row {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+.legend-row li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text);
+}
+.legend-row .legend-chip {
+  width: 28px;
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 11px;
 }
 .empty-state {
   border: 1px dashed var(--border);
@@ -682,13 +727,19 @@ body {
   max-width: 28px;
   text-overflow: ellipsis;
 }
-.state-low {
-  background: #fafbfc;
-  align-items: flex-end;
-}
+/* High = filled + a "level line" along the top; Low = white + line at bottom,
+   so ON/OFF reads at a glance like the waveform itself. */
 .state-high {
-  background: #fafbfc;
+  background: #e6f0ff;
+  box-shadow: inset 0 3px 0 var(--accent);
+  color: #1a3a6b;
   align-items: flex-start;
+}
+.state-low {
+  background: #fff;
+  box-shadow: inset 0 -3px 0 #aab1bd;
+  color: #6b7280;
+  align-items: flex-end;
 }
 .state-clkp {
   background: #eef6ff;
