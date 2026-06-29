@@ -66,10 +66,14 @@ export function SignalTable() {
   // Active "brush": when set, clicking a cell paints that state; when null,
   // clicking cycles through the common states (the default behavior).
   const [brush, setBrush] = useState<string | null>(null)
-  // Disarm the brush when a new document is loaded so the first click on the
-  // new doc cycles (as expected) instead of painting the stale brush.
+  // Roving-tabindex focus: which cell (signal-row index, tick) is keyboard-active.
+  const [focusedCell, setFocusedCell] = useState<{ r: number; t: number } | null>(null)
+  // Disarm the brush AND reset keyboard focus when a new document is loaded.
   const loadEpoch = useEditor((s) => s.loadEpoch)
-  useEffect(() => setBrush(null), [loadEpoch])
+  useEffect(() => {
+    setBrush(null)
+    setFocusedCell(null)
+  }, [loadEpoch])
 
   const rows = flattenSignals(model)
   const ticks = maxTicks(model)
@@ -77,9 +81,13 @@ export function SignalTable() {
   // Editable signal rows in display order — the index space for keyboard focus.
   const signalPaths = rows.filter((r) => r.kind === 'signal').map((r) => r.path)
   const sigIndexOf = (path: number[]) => signalPaths.findIndex((p) => pathEq(p, path))
+  // Effective focus: fall back to (0,0) when focusedCell is unset or stale
+  // (out of range after a delete / tick-down / load), so the grid stays Tab-able.
+  const effFocus =
+    focusedCell && focusedCell.r < signalPaths.length && focusedCell.t < ticks
+      ? focusedCell
+      : { r: 0, t: 0 }
 
-  // Roving-tabindex focus: which cell (signal-row index, tick) is keyboard-active.
-  const [focusedCell, setFocusedCell] = useState<{ r: number; t: number } | null>(null)
   useEffect(() => {
     if (!focusedCell) return
     document
@@ -114,22 +122,24 @@ export function SignalTable() {
     applyGuiModel(setCellState(model, path, tick, next))
   }
 
-  const onCellKeyDown = (r: number, t: number, path: number[], e: React.KeyboardEvent) => {
+  // Only arrows are handled here. Enter/Space are intentionally NOT intercepted:
+  // a native <button> already fires a click on Enter/Space (carrying shiftKey/
+  // altKey), so the onClick handler applies the action. Handling them here too
+  // would double-fire (Space activates on keyup, which keydown.preventDefault
+  // can't stop).
+  const onCellKeyDown = (r: number, t: number, e: React.KeyboardEvent) => {
     const k = e.key
-    if (k === 'ArrowRight' || k === 'ArrowLeft' || k === 'ArrowUp' || k === 'ArrowDown') {
-      e.preventDefault()
-      let nr = r
-      let nt = t
-      if (k === 'ArrowRight') nt = Math.min(ticks - 1, t + 1)
-      else if (k === 'ArrowLeft') nt = Math.max(0, t - 1)
-      else if (k === 'ArrowDown') nr = Math.min(signalPaths.length - 1, r + 1)
-      else nr = Math.max(0, r - 1)
-      setFocusedCell({ r: nr, t: nt })
-    } else if (k === 'Enter' || k === ' ') {
-      e.preventDefault()
-      setSelectedPath(path)
-      applyCellAction(path, t, { altKey: e.altKey, shiftKey: e.shiftKey })
-    }
+    if (k !== 'ArrowRight' && k !== 'ArrowLeft' && k !== 'ArrowUp' && k !== 'ArrowDown') return
+    e.preventDefault()
+    let nr = r
+    let nt = t
+    if (k === 'ArrowRight') nt = Math.min(ticks - 1, t + 1)
+    else if (k === 'ArrowLeft') nt = Math.max(0, t - 1)
+    else if (k === 'ArrowDown') nr = Math.min(signalPaths.length - 1, r + 1)
+    else nr = Math.max(0, r - 1)
+    setFocusedCell({ r: nr, t: nt })
+    // Keep selection in step with keyboard focus.
+    if (signalPaths[nr]) setSelectedPath(signalPaths[nr])
   }
 
   return (
@@ -298,18 +308,17 @@ export function SignalTable() {
                       const di = dataIndexAtTick(sig.wave ?? '', t)
                       if (di >= 0) label = data[di] ?? ''
                     }
-                    const isFocused = focusedCell
-                      ? focusedCell.r === sigIndex && focusedCell.t === t
-                      : sigIndex === 0 && t === 0
+                    const isFocused = effFocus.r === sigIndex && effFocus.t === t
                     return (
                       <td key={t} className="cell-td">
                         <WaveCell
                           value={cell.value}
                           isHead={cell.head}
                           busLabel={label}
+                          labelPrefix={`${sig.name || '信号'} tick${t}: `}
                           tabIndex={isFocused ? 0 : -1}
                           cellId={`${sigIndex}-${t}`}
-                          onKeyDown={(e) => onCellKeyDown(sigIndex, t, row.path, e)}
+                          onKeyDown={(e) => onCellKeyDown(sigIndex, t, e)}
                           onClick={(e) => {
                             e.stopPropagation()
                             setSelectedPath(row.path)

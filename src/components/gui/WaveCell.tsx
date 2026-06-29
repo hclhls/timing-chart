@@ -10,13 +10,24 @@ interface Props {
   /** Identifies the cell for arrow-key focus moves, e.g. "2-5". */
   cellId?: string
   onKeyDown?: (e: React.KeyboardEvent) => void
+  /** Prepended to the accessible label, e.g. "clk tick3: " for screen readers. */
+  labelPrefix?: string
 }
 
 /** A single editable grid cell rendering a compact glyph for its state. */
-export function WaveCell({ value, isHead, busLabel, onClick, tabIndex, cellId, onKeyDown }: Props) {
+export function WaveCell({
+  value,
+  isHead,
+  busLabel,
+  onClick,
+  tabIndex,
+  cellId,
+  onKeyDown,
+  labelPrefix = '',
+}: Props) {
   const cls = ['wave-cell', ...stateClasses(value)]
   if (!isHead) cls.push('extension')
-  const label = describe(value, busLabel)
+  const label = labelPrefix + describe(value, busLabel)
   return (
     <button
       className={cls.join(' ')}
