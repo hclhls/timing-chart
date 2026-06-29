@@ -5,15 +5,28 @@ interface Props {
   isHead: boolean
   busLabel: string
   onClick: (e: React.MouseEvent) => void
+  /** Roving-tabindex value (0 for the focused cell, -1 otherwise). */
+  tabIndex?: number
+  /** Identifies the cell for arrow-key focus moves, e.g. "2-5". */
+  cellId?: string
+  onKeyDown?: (e: React.KeyboardEvent) => void
 }
 
 /** A single editable grid cell rendering a compact glyph for its state. */
-export function WaveCell({ value, isHead, busLabel, onClick }: Props) {
+export function WaveCell({ value, isHead, busLabel, onClick, tabIndex, cellId, onKeyDown }: Props) {
   const cls = ['wave-cell', ...stateClasses(value)]
   if (!isHead) cls.push('extension')
   const label = describe(value, busLabel)
   return (
-    <button className={cls.join(' ')} onClick={onClick} title={label} aria-label={label}>
+    <button
+      className={cls.join(' ')}
+      onClick={onClick}
+      onKeyDown={onKeyDown}
+      tabIndex={tabIndex}
+      data-cell={cellId}
+      title={label}
+      aria-label={label}
+    >
       <span className="glyph">{glyph(value, busLabel)}</span>
     </button>
   )

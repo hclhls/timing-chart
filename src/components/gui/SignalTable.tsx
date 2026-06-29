@@ -74,9 +74,25 @@ export function SignalTable() {
   const rows = flattenSignals(model)
   const ticks = maxTicks(model)
   const tickArray = Array.from({ length: ticks }, (_, i) => i)
+  // Editable signal rows in display order — the index space for keyboard focus.
+  const signalPaths = rows.filter((r) => r.kind === 'signal').map((r) => r.path)
+  const sigIndexOf = (path: number[]) => signalPaths.findIndex((p) => pathEq(p, path))
 
-  const onCellClick = (path: number[], tick: number, e: React.MouseEvent) => {
-    if (e.altKey) {
+  // Roving-tabindex focus: which cell (signal-row index, tick) is keyboard-active.
+  const [focusedCell, setFocusedCell] = useState<{ r: number; t: number } | null>(null)
+  useEffect(() => {
+    if (!focusedCell) return
+    document
+      .querySelector<HTMLElement>(`[data-cell="${focusedCell.r}-${focusedCell.t}"]`)
+      ?.focus()
+  }, [focusedCell])
+
+  const applyCellAction = (
+    path: number[],
+    tick: number,
+    mods: { altKey: boolean; shiftKey: boolean },
+  ) => {
+    if (mods.altKey) {
       if (tick === 0) return // tick 0 has nothing to extend from
       applyGuiModel(extendCell(model, path, tick))
       return
@@ -93,9 +109,27 @@ export function SignalTable() {
       applyGuiModel(setCellState(model, path, tick, brush))
       return
     }
-    const next = cycle(cur, e.shiftKey ? -1 : 1)
+    const next = cycle(cur, mods.shiftKey ? -1 : 1)
     if (next === cur) return // unknown state — no-op, don't churn the model
     applyGuiModel(setCellState(model, path, tick, next))
+  }
+
+  const onCellKeyDown = (r: number, t: number, path: number[], e: React.KeyboardEvent) => {
+    const k = e.key
+    if (k === 'ArrowRight' || k === 'ArrowLeft' || k === 'ArrowUp' || k === 'ArrowDown') {
+      e.preventDefault()
+      let nr = r
+      let nt = t
+      if (k === 'ArrowRight') nt = Math.min(ticks - 1, t + 1)
+      else if (k === 'ArrowLeft') nt = Math.max(0, t - 1)
+      else if (k === 'ArrowDown') nr = Math.min(signalPaths.length - 1, r + 1)
+      else nr = Math.max(0, r - 1)
+      setFocusedCell({ r: nr, t: nt })
+    } else if (k === 'Enter' || k === ' ') {
+      e.preventDefault()
+      setSelectedPath(path)
+      applyCellAction(path, t, { altKey: e.altKey, shiftKey: e.shiftKey })
+    }
   }
 
   return (
@@ -235,6 +269,7 @@ export function SignalTable() {
               const cells = expandWave(sig.wave ?? '')
               const data = dataToArray(sig.data)
               const selected = pathEq(selectedPath, row.path)
+              const sigIndex = sigIndexOf(row.path)
               return (
                 <tr
                   key={key}
@@ -263,16 +298,23 @@ export function SignalTable() {
                       const di = dataIndexAtTick(sig.wave ?? '', t)
                       if (di >= 0) label = data[di] ?? ''
                     }
+                    const isFocused = focusedCell
+                      ? focusedCell.r === sigIndex && focusedCell.t === t
+                      : sigIndex === 0 && t === 0
                     return (
                       <td key={t} className="cell-td">
                         <WaveCell
                           value={cell.value}
                           isHead={cell.head}
                           busLabel={label}
+                          tabIndex={isFocused ? 0 : -1}
+                          cellId={`${sigIndex}-${t}`}
+                          onKeyDown={(e) => onCellKeyDown(sigIndex, t, row.path, e)}
                           onClick={(e) => {
                             e.stopPropagation()
                             setSelectedPath(row.path)
-                            onCellClick(row.path, t, e)
+                            setFocusedCell({ r: sigIndex, t })
+                            applyCellAction(row.path, t, { altKey: e.altKey, shiftKey: e.shiftKey })
                           }}
                         />
                       </td>
@@ -286,8 +328,10 @@ export function SignalTable() {
       </div>
       <p className="hint">
         {brush === null
-          ? 'クリック=状態送り / Shift+クリック=戻し / Alt+クリック=直前を延長'
+          ? 'クリック=状態送り / Shift+クリック=戻し / Alt+クリック=延長'
           : `ペン「${brush}」: クリックで適用 / 同じペン再クリックで解除 / Alt+クリック=延長`}
+        <br />
+        キーボード: 矢印=移動 / Enter・Space=適用 / Shift+Enter=戻し / Alt+Enter=延長
       </p>
     </section>
   )
