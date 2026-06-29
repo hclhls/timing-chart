@@ -31,7 +31,11 @@ export class ErrorBoundary extends Component<Props, State> {
     } catch {
       /* ignore */
     }
-    window.location.replace(window.location.origin + window.location.pathname)
+    // Clear the share hash FIRST: replacing to origin+pathname while a hash is
+    // present is a same-document navigation that would not reload. Strip it via
+    // history, then force a real reload to remount from the default document.
+    window.history.replaceState(null, '', window.location.origin + window.location.pathname)
+    window.location.reload()
   }
 
   render() {

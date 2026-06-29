@@ -9,7 +9,7 @@ interface Props {
 
 /** A single editable grid cell rendering a compact glyph for its state. */
 export function WaveCell({ value, isHead, busLabel, onClick }: Props) {
-  const cls = ['wave-cell', `state-${stateClass(value)}`]
+  const cls = ['wave-cell', ...stateClasses(value)]
   if (!isHead) cls.push('extension')
   const label = describe(value, busLabel)
   return (
@@ -19,37 +19,57 @@ export function WaveCell({ value, isHead, busLabel, onClick }: Props) {
   )
 }
 
-function stateClass(v: string): string {
-  if (isBusState(v)) return 'bus'
+function stateClasses(v: string): string[] {
+  if (v === '=') return ['state-bus', 'state-bus-eq']
+  if (isBusState(v)) return ['state-bus', `state-bus-${v}`] // 2..9 → distinct fills
   switch (v) {
     case '0':
-      return 'low'
+      return ['state-low']
     case '1':
-      return 'high'
+      return ['state-high']
+    case 'h':
+    case 'H':
+      return ['state-high'] // high level (H also draws an edge arrow)
+    case 'l':
+    case 'L':
+      return ['state-low']
+    case 'd':
+      return ['state-weak0'] // weak pull-down
+    case 'u':
+      return ['state-weak1'] // weak pull-up
     case 'p':
     case 'P':
-      return 'clkp'
+      return ['state-clkp']
     case 'n':
     case 'N':
-      return 'clkn'
+      return ['state-clkn']
     case 'x':
-      return 'x'
+      return ['state-x']
     case 'z':
-      return 'z'
+      return ['state-z']
     case '|':
-      return 'gap'
+      return ['state-gap']
     default:
-      return 'unknown'
+      return ['state-unknown']
   }
 }
 
 function glyph(v: string, busLabel: string): string {
-  if (isBusState(v)) return busLabel || '='
+  // Bus: prefer the data label, else show the digit so 3 ≠ 5 is visible.
+  if (isBusState(v)) return busLabel || (v === '=' ? '=' : v)
   switch (v) {
     case '0':
+    case 'l':
+    case 'L':
       return '0'
     case '1':
+    case 'h':
+    case 'H':
       return '1'
+    case 'd':
+      return 'd'
+    case 'u':
+      return 'u'
     case 'p':
       return '⊓⊔' // posedge clock: rises first
     case 'P':
@@ -70,10 +90,19 @@ function glyph(v: string, busLabel: string): string {
 }
 
 function describe(v: string, busLabel = ''): string {
-  if (isBusState(v)) return `バス値${busLabel ? ': ' + busLabel : ' (' + v + ')'}`
+  if (isBusState(v)) {
+    const id = v === '=' ? '' : ` ${v}`
+    return `バス値${busLabel ? ': ' + busLabel : id ? ' (' + v + ')' : ''}`
+  }
   const map: Record<string, string> = {
     '0': 'Low',
     '1': 'High',
+    h: 'High (マーカー)',
+    H: 'High (マーカー・矢印)',
+    l: 'Low (マーカー)',
+    L: 'Low (マーカー・矢印)',
+    d: '弱プルダウン (d)',
+    u: '弱プルアップ (u)',
     p: 'クロック (正エッジ)',
     P: 'クロック (正エッジ・矢印)',
     n: 'クロック (負エッジ)',

@@ -5,8 +5,33 @@ import { parseModel } from '../model/parse'
 import type { SkinName } from '../render/skins'
 import { DEFAULT_MODEL } from './defaultModel'
 import { readShare } from '../share/url'
+import { flattenSignals } from './selectors'
 
 const STORAGE_KEY = 'timing-chart:model'
+
+/** Does `path` still resolve to an existing signal row in `model`? */
+function pathResolvesToSignal(path: number[] | null, model: WaveJson): boolean {
+  if (!path) return false
+  return flattenSignals(model).some(
+    (r) => r.kind === 'signal' && r.path.length === path.length && r.path.every((v, i) => v === path[i]),
+  )
+}
+
+/**
+ * Detach a `#d=` share hash from the URL once the user edits. A share link is a
+ * snapshot; without this, the hash keeps winning over localStorage on reload
+ * (hash > localStorage), silently discarding post-share edits.
+ */
+function detachShareHash(): void {
+  if (typeof window === 'undefined') return
+  if (window.location.hash.includes('d=')) {
+    window.history.replaceState(
+      null,
+      '',
+      window.location.origin + window.location.pathname + window.location.search,
+    )
+  }
+}
 
 /** Load the autosaved model from localStorage, or null. Never throws. */
 function loadPersisted(): WaveJson | null {
@@ -75,7 +100,8 @@ export const useEditor = create<EditorState>((set, get) => ({
   selectedPath: null,
   notice: startNotice,
 
-  applyGuiModel: (model) =>
+  applyGuiModel: (model) => {
+    detachShareHash() // first edit after opening a share link → own working copy
     set((state) => ({
       model,
       lastValidModel: model,
@@ -83,7 +109,8 @@ export const useEditor = create<EditorState>((set, get) => ({
       textBuffer: state.textFocused ? state.textBuffer : serializeModel(model),
       editSource: 'gui',
       parseError: state.textFocused ? state.parseError : null,
-    })),
+    }))
+  },
 
   setText: (text) => set({ textBuffer: text, editSource: 'typing' }),
 
@@ -91,14 +118,20 @@ export const useEditor = create<EditorState>((set, get) => ({
     const { textBuffer } = get()
     const res = parseModel(textBuffer)
     if (res.ok && res.model) {
+      detachShareHash()
       // Promote to model but DO NOT rewrite textBuffer — the user owns it.
-      set({
-        model: res.model,
-        lastValidModel: res.model,
+      set((state) => ({
+        model: res.model!,
+        lastValidModel: res.model!,
         editSource: 'text',
         parseError: null,
-        skinName: (res.model.config?.skin as SkinName) ?? get().skinName,
-      })
+        skinName: (res.model!.config?.skin as SkinName) ?? state.skinName,
+        // A text edit may have removed/reordered signals — drop a now-stale
+        // selection so the panels don't edit the wrong row.
+        selectedPath: pathResolvesToSignal(state.selectedPath, res.model!)
+          ? state.selectedPath
+          : null,
+      }))
     } else {
       set({ parseError: res.error ?? 'パースに失敗しました' })
     }
@@ -114,9 +147,25 @@ export const useEditor = create<EditorState>((set, get) => ({
       editSource: 'load',
       parseError: null,
       skinName: (model.config?.skin as SkinName) ?? get().skinName,
+      // Fresh document — clear any selection pointing into the old one.
+      selectedPath: null,
     }),
 
-  setSkin: (skin) => set({ skinName: skin }),
+  // Skin is part of the model so it survives share/save/reload (the renderer
+  // injects config.skin from skinName; keep both in sync here).
+  setSkin: (skin) => {
+    detachShareHash()
+    set((state) => {
+      const model = { ...state.model, config: { ...state.model.config, skin } }
+      return {
+        skinName: skin,
+        model,
+        lastValidModel: model,
+        textBuffer: state.textFocused ? state.textBuffer : serializeModel(model),
+        editSource: 'gui',
+      }
+    })
+  },
 
   setSelectedPath: (path) => set({ selectedPath: path }),
 
@@ -142,3 +191,22 @@ useEditor.subscribe((state) => {
     }
   }, 400)
 })
+
+// Flush a pending debounced save when the page is being hidden/closed, so an
+// edit made within the debounce window isn't lost on a quick close/reload.
+function flushSave(): void {
+  if (saveTimer === undefined) return
+  window.clearTimeout(saveTimer)
+  saveTimer = undefined
+  try {
+    localStorage.setItem(STORAGE_KEY, serializeModel(useEditor.getState().model))
+  } catch {
+    /* ignore */
+  }
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', flushSave)
+  window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushSave()
+  })
+}

@@ -260,9 +260,45 @@ body {
   color: #6b3fd4;
 }
 .state-bus {
-  background: #fff7e6;
-  color: #8a5a00;
+  color: #222;
   font-weight: 600;
+}
+/* Bus fills mirror the WaveDrom default skin palette (s7..s14). */
+.state-bus-eq,
+.state-bus-2 {
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px #e2dcc6;
+}
+.state-bus-3 {
+  background: #ffffb4;
+}
+.state-bus-4 {
+  background: #ffe0b9;
+}
+.state-bus-5 {
+  background: #b9e0ff;
+}
+.state-bus-6 {
+  background: #ccfdfe;
+}
+.state-bus-7 {
+  background: #cdfdc5;
+}
+.state-bus-8 {
+  background: #f0c1fb;
+}
+.state-bus-9 {
+  background: #f5c2c0;
+}
+.state-weak0 {
+  background: #f7f8fa;
+  color: #8a8f99;
+  align-items: flex-end;
+}
+.state-weak1 {
+  background: #f7f8fa;
+  color: #8a8f99;
+  align-items: flex-start;
 }
 .state-x {
   background: repeating-linear-gradient(45deg, #f0d6d6, #f0d6d6 3px, #fae3e3 3px, #fae3e3 6px);
