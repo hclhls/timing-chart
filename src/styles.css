@@ -890,6 +890,41 @@ body {
   font-size: 13px;
 }
 
+/* ---- Diagram title / time-axis panel ---- */
+.labels-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.labels-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+  font-size: 13px;
+}
+.labels-row input[type='text'],
+.labels-row input:not([type]) {
+  flex: 1;
+  min-width: 0;
+}
+.labels-row input {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 6px;
+  background: #fff;
+}
+.labels-row input[type='number'] {
+  width: 80px;
+  flex: none;
+}
+.labels-check {
+  justify-content: flex-start;
+}
+.labels-check input {
+  flex: none;
+}
+
 /* ---- Edge editor ---- */
 .edge-section {
   border-top: 1px dashed var(--border);

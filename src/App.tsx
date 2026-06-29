@@ -5,6 +5,7 @@ import { busHeadTicks } from './model/wave-codec'
 import { Toolbar } from './components/Toolbar'
 import { SignalTable } from './components/gui/SignalTable'
 import { BusDataPanel } from './components/gui/BusDataPanel'
+import { DiagramLabelsPanel } from './components/gui/DiagramLabelsPanel'
 import { EdgeEditor } from './components/annotations/EdgeEditor'
 import { WaveJsonEditor } from './components/text/WaveJsonEditor'
 import { PreviewPane } from './components/preview/PreviewPane'
@@ -172,6 +173,10 @@ export default function App() {
               バス値{busCount > 0 && selSig ? `: ${selSig.name || '(無名)'} #${busCount}` : ''}
             </summary>
             <BusDataPanel />
+          </details>
+          <details className="panel">
+            <summary>タイトル・時間軸（図の見出し）</summary>
+            <DiagramLabelsPanel />
           </details>
           <details className="panel">
             <summary>
