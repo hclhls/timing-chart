@@ -150,6 +150,38 @@ body {
   min-width: 48px;
   text-align: center;
 }
+.brush-palette {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  margin: 0 0 8px;
+}
+.brush-label {
+  color: var(--muted);
+  font-size: 12px;
+  margin-right: 4px;
+}
+.palette-btn {
+  cursor: pointer;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: #fff;
+  font-size: 12px;
+  line-height: 1;
+}
+.palette-btn:hover {
+  border-color: var(--accent);
+}
+.palette-btn.active {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+  border-color: var(--accent);
+}
+
 .table-scroll {
   overflow: auto;
 }

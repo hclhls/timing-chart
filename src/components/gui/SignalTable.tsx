@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useEditor } from '../../state/store'
 import { flattenSignals, maxTicks, type Row } from '../../state/selectors'
 import {
@@ -24,11 +25,43 @@ function cycle(value: string, dir: 1 | -1): string {
   return states[(idx + dir + states.length) % states.length]
 }
 
+/** Brush palette: every state authorable by click, incl. bus 2-9 and gap. */
+const PALETTE: { v: string; t: string }[] = [
+  { v: '0', t: 'Low' },
+  { v: '1', t: 'High' },
+  { v: 'p', t: 'クロック正' },
+  { v: 'n', t: 'クロック負' },
+  { v: 'P', t: 'クロック正(矢印)' },
+  { v: 'N', t: 'クロック負(矢印)' },
+  { v: 'x', t: '不定 X' },
+  { v: 'z', t: 'ハイZ' },
+  { v: '=', t: 'バス =' },
+  { v: '2', t: 'バス 2' },
+  { v: '3', t: 'バス 3' },
+  { v: '4', t: 'バス 4' },
+  { v: '5', t: 'バス 5' },
+  { v: '6', t: 'バス 6' },
+  { v: '7', t: 'バス 7' },
+  { v: '8', t: 'バス 8' },
+  { v: '9', t: 'バス 9' },
+  { v: '|', t: 'ギャップ' },
+]
+
+function brushClasses(v: string): string {
+  if (v === '=') return 'palette-btn state-bus state-bus-eq'
+  if (isBusState(v)) return `palette-btn state-bus state-bus-${v}`
+  return 'palette-btn'
+}
+
 export function SignalTable() {
   const model = useEditor((s) => s.model)
   const applyGuiModel = useEditor((s) => s.applyGuiModel)
   const selectedPath = useEditor((s) => s.selectedPath)
   const setSelectedPath = useEditor((s) => s.setSelectedPath)
+
+  // Active "brush": when set, clicking a cell paints that state; when null,
+  // clicking cycles through the common states (the default behavior).
+  const [brush, setBrush] = useState<string | null>(null)
 
   const rows = flattenSignals(model)
   const ticks = maxTicks(model)
@@ -43,6 +76,11 @@ export function SignalTable() {
     const sig = rowSignalAt(rows, path)
     const cells = expandWave(sig?.wave ?? '')
     const cur = cells[tick]?.value ?? '0'
+    if (brush !== null) {
+      if (cur === brush) return // already that state — no-op
+      applyGuiModel(setCellState(model, path, tick, brush))
+      return
+    }
     const next = cycle(cur, e.shiftKey ? -1 : 1)
     if (next === cur) return // unknown state — no-op, don't churn the model
     applyGuiModel(setCellState(model, path, tick, next))
@@ -63,6 +101,30 @@ export function SignalTable() {
         <button onClick={() => applyGuiModel(addTick(model))} title="tickを増やす">
           ＋ tick
         </button>
+      </div>
+
+      <div className="brush-palette" role="radiogroup" aria-label="ペン（状態ブラシ）">
+        <span className="brush-label">ペン</span>
+        <button
+          className={brush === null ? 'palette-btn active' : 'palette-btn'}
+          onClick={() => setBrush(null)}
+          title="クリックで状態を順送り（既定）"
+          aria-pressed={brush === null}
+        >
+          サイクル
+        </button>
+        {PALETTE.map(({ v, t }) => (
+          <button
+            key={v}
+            className={brush === v ? `${brushClasses(v)} active` : brushClasses(v)}
+            onClick={() => setBrush(brush === v ? null : v)}
+            title={t}
+            aria-label={t}
+            aria-pressed={brush === v}
+          >
+            {v}
+          </button>
+        ))}
       </div>
 
       <div className="table-scroll">
@@ -157,7 +219,9 @@ export function SignalTable() {
         </table>
       </div>
       <p className="hint">
-        クリック=状態送り / Shift+クリック=戻し / Alt+クリック=直前を延長
+        {brush === null
+          ? 'クリック=状態送り / Shift+クリック=戻し / Alt+クリック=直前を延長'
+          : `ペン「${brush}」: クリックでそのセルに適用 / Alt+クリック=直前を延長`}
       </p>
     </section>
   )
