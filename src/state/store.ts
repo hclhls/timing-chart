@@ -230,9 +230,11 @@ export const useEditor = create<EditorState>((set, get) => ({
       ...histPush(state),
       model,
       lastValidModel: model,
-      textBuffer: serializeModel(model),
+      // A remote bridge sync can land while the user is mid-edit in the text
+      // box; don't wipe what they're typing (matches applyGuiModel's guard).
+      textBuffer: state.textFocused ? state.textBuffer : serializeModel(model),
       editSource: 'load',
-      parseError: null,
+      parseError: state.textFocused ? state.parseError : null,
       skinName: (model.config?.skin as SkinName) ?? 'default',
       // Fresh document — clear any selection pointing into the old one.
       selectedPath: null,

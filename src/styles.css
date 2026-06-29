@@ -1088,12 +1088,22 @@ body {
     font-size: 16px;
   }
   /* Bigger tap targets for the per-row / per-group controls. */
+  .row-controls,
+  .group-controls {
+    gap: 6px;
+  }
   .row-controls button,
   .group-controls button {
-    min-width: 32px;
-    height: 32px;
-    font-size: 13px;
+    min-width: 40px;
+    height: 40px;
+    font-size: 15px;
     padding: 0 4px;
+  }
+  /* Hold the destructive delete (×, always last) away from its neighbours so a
+     fat-finger tap can't turn "clock-ify" or "add signal" into a deletion. */
+  .row-controls button:last-child,
+  .group-controls button:last-child {
+    margin-left: 10px;
   }
   .ctrl-col {
     width: auto;

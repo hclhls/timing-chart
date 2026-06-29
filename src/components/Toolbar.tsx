@@ -214,7 +214,7 @@ export function Toolbar() {
             : '編集内容はこのブラウザに自動保存されます'
         }
       >
-        {viewingShared ? '共有リンク表示中' : 'このブラウザに保存'}
+        {viewingShared ? '共有リンク表示中' : '自動保存済み ✓'}
       </span>
 
       <span className="toast-region" role="status" aria-live="polite">

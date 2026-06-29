@@ -98,10 +98,16 @@ export function SignalTable() {
     setBrush(null)
     setFocusedCell(null)
   }, [loadEpoch])
-  // Esc clears the active paint brush (back to High/Low切替).
+  // Esc clears the active paint brush (back to High/Low切替). Stay out of the
+  // way when a dialog already handled Esc (defaultPrevented) or when the user is
+  // typing in a field — otherwise closing the help modal or editing WaveJSON
+  // would silently disarm the brush too.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setBrush(null)
+      if (e.key !== 'Escape' || e.defaultPrevented) return
+      const el = document.activeElement as HTMLElement | null
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return
+      setBrush(null)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -201,9 +207,14 @@ export function SignalTable() {
     const onUp = () => (dragValue.current = null)
     document.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
+    // A touch sweep that turns into a page scroll fires pointercancel, not
+    // pointerup — disarm there too so the brush doesn't stay "live" and paint
+    // a stray cell on the next move.
+    window.addEventListener('pointercancel', onUp)
     return () => {
       document.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
     }
   }, [])
 
@@ -254,15 +265,15 @@ export function SignalTable() {
             applyGuiModel(removeTick(model))
             flash('コマを1つ減らしました（「戻す」で復元できます）')
           }}
-          title="時間のコマ（列）を減らす"
+          title="時間の長さ（横のコマ）を1つ減らす"
         >
-          − コマ
+          − 時間
         </button>
-        <span className="tick-count" title="時間のコマ数（横の列数）">
-          {ticks} コマ
+        <span className="tick-count" title="時間の長さ＝横のコマ数">
+          長さ {ticks}
         </span>
-        <button onClick={() => applyGuiModel(addTick(model))} title="時間のコマ（列）を増やす">
-          ＋ コマ
+        <button onClick={() => applyGuiModel(addTick(model))} title="時間の長さ（横のコマ）を1つ増やす">
+          ＋ 時間
         </button>
       </div>
 

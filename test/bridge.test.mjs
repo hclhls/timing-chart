@@ -43,6 +43,11 @@ test('POST invalid shape → 400', async () => {
   assert.equal((await post({ nope: 1 })).status, 400)
 })
 
+test('POST signal with non-string wave → 400 (would crash the tab)', async () => {
+  assert.equal((await post({ signal: [{ name: 'a', wave: 123 }] })).status, 400)
+  assert.equal((await post({ signal: [{ name: 7, wave: '01' }] })).status, 400)
+})
+
 test('POST non-JSON → 400', async () => {
   assert.equal((await post('{ broken')).status, 400)
 })

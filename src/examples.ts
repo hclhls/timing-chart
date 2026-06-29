@@ -47,13 +47,14 @@ export const EXAMPLES: Example[] = [
   {
     id: 'spi',
     name: 'SPI（通信）',
+    // 1クロック＝1ビットで揃えた最小例（CSはアクティブLow）。
     model: {
       signal: [
-        { name: 'SCLK', wave: '0.P.P.P.P.0' },
-        { name: 'CS', wave: '10........1' },
-        { name: 'MOSI', wave: 'x.=.=.=.=.x', data: ['b7', 'b6', 'b5', 'b4'] },
+        { name: 'SCLK', wave: '0pppp0' },
+        { name: 'CS', wave: '100001' },
+        { name: 'MOSI', wave: 'x====x', data: ['b3', 'b2', 'b1', 'b0'] },
       ],
-      config: { hscale: 1 },
+      config: { hscale: 2 },
     },
   },
 ]

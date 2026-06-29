@@ -16,7 +16,7 @@
 
 import http from 'node:http'
 import { readFile, stat } from 'node:fs/promises'
-import { join, extname, normalize } from 'node:path'
+import { join, extname, normalize, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = fileURLToPath(new URL('../dist', import.meta.url))
@@ -62,10 +62,18 @@ function json(res, code, obj) {
 function isValidModel(m) {
   if (!m || typeof m !== 'object' || Array.isArray(m)) return false
   if (!Array.isArray(m.signal)) return false
-  const validLane = (l) =>
-    typeof l === 'string' ||
-    (Array.isArray(l) && l.every(validLane)) ||
-    (typeof l === 'object' && l !== null)
+  const validLane = (l) => {
+    if (typeof l === 'string') return true // group label
+    if (Array.isArray(l)) return l.every(validLane) // nested group
+    if (typeof l === 'object' && l !== null) {
+      // A signal whose wave/name isn't a string would crash expandWave in the
+      // tab; reject it at the door (mirrors the app parser's expectations).
+      if ('wave' in l && typeof l.wave !== 'string') return false
+      if ('name' in l && typeof l.name !== 'string') return false
+      return true
+    }
+    return false
+  }
   return m.signal.every(validLane)
 }
 
@@ -89,7 +97,9 @@ async function serveStatic(pathname, res) {
   let rel = decodeURIComponent(pathname).replace(/^\/timing-chart/, '')
   if (rel === '' || rel === '/') rel = '/index.html'
   const file = normalize(join(ROOT, rel))
-  if (!file.startsWith(ROOT)) {
+  // Must be ROOT itself or strictly inside it. A bare startsWith(ROOT) would
+  // also let a sibling like `<ROOT>-secret\…` through (prefix match).
+  if (file !== ROOT && !file.startsWith(ROOT + sep)) {
     res.writeHead(403)
     res.end('forbidden')
     return

@@ -17,7 +17,7 @@ const BLANK = { signal: [], config: { hscale: 1 } }
 type Tab = 'gui' | 'text' | 'preview'
 const TABS: { id: Tab; label: string }[] = [
   { id: 'gui', label: '編集' },
-  { id: 'text', label: 'WaveJSON' },
+  { id: 'text', label: 'コード（上級者）' },
   { id: 'preview', label: 'プレビュー' },
 ]
 
