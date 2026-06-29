@@ -11,6 +11,7 @@ import { svgToString } from '../export/svg'
 import { svgToPngBlob } from '../export/png'
 import { downloadBlob, downloadText } from '../export/download'
 import { buildShareUrl } from '../share/url'
+import { bridgeConnect, bridgeDisconnect, DEFAULT_BRIDGE_URL, type BridgeStatus } from '../bridge/client'
 
 export function Toolbar() {
   const model = useEditor((s) => s.model)
@@ -31,6 +32,8 @@ export function Toolbar() {
   const [clockKind, setClockKind] = useState<ClockKind>('P')
   const [pngScale, setPngScale] = useState(2)
   const [toast, setToast] = useState<string | null>(null)
+  const [bridgeOn, setBridgeOn] = useState(false)
+  const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>('disconnected')
 
   const flash = (msg: string) => {
     if (toastTimer.current) window.clearTimeout(toastTimer.current)
@@ -108,6 +111,19 @@ export function Toolbar() {
     flash(base + suffix)
   }
 
+  const toggleBridge = () => {
+    if (bridgeOn) {
+      bridgeDisconnect()
+      setBridgeOn(false)
+      setBridgeStatus('disconnected')
+      flash('ブリッジを切断しました')
+    } else {
+      bridgeConnect(DEFAULT_BRIDGE_URL, setBridgeStatus)
+      setBridgeOn(true)
+      flash(`ブリッジ接続中… (${DEFAULT_BRIDGE_URL})`)
+    }
+  }
+
   return (
     <header className="toolbar">
       <span className="app-title">タイミングチャート</span>
@@ -165,6 +181,14 @@ export function Toolbar() {
 
       <div className="tb-group">
         <button onClick={share}>共有リンク</button>
+        <button
+          onClick={toggleBridge}
+          title={`Claude Code連携: ${DEFAULT_BRIDGE_URL} と双方向同期`}
+          className={bridgeOn ? 'bridge-btn on' : 'bridge-btn'}
+        >
+          <span className={`bridge-dot ${bridgeStatus}`} />
+          ブリッジ{bridgeOn ? '切断' : '接続'}
+        </button>
       </div>
 
       <span

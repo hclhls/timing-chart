@@ -34,6 +34,45 @@ npm run build      # 型チェック + 本番ビルド → dist/
 npm run preview
 ```
 
+## Claude Code 連携（ブリッジ / HTTPエンドポイント）
+
+外部ツール（Claude Code など）から、ブラウザで開いているチャートを読み書きできます。
+依存ゼロのローカルHTTPサーバ `bridge/server.mjs` がモデルを仲介し、ブラウザとは
+SSE＋POSTで**双方向同期**します（疎結合・本体を止めない設計）。
+
+```bash
+npm run build      # 先にビルド（ブリッジがdist/も配信する）
+npm run bridge     # http://localhost:51123 で起動
+```
+
+- ブラウザで `http://localhost:51123/timing-chart/` を開く（または `npm run dev` のローカル/公開サイトでも可）
+- ツールバーの **「ブリッジ接続」** を押す（ドットが緑で接続）
+- これで Claude Code 側の編集 ⇄ ブラウザの編集 が同期します
+
+### API（CORS有効）
+
+| メソッド | パス | 説明 |
+|---|---|---|
+| GET | `/health` | `{ ok, clients }` |
+| GET | `/model` | 現在の WaveJSON を取得 |
+| POST | `/model` | WaveJSON をセット（`signal`配列必須・不正は400）→ 全クライアントへ配信 |
+| GET | `/events` | SSE。接続時に現在値、以後は変更のたびに push |
+
+### Claude Code からの編集例
+
+```bash
+# 現在のモデルを取得
+curl -s http://localhost:51123/model | jq .
+
+# モデルを差し替え（ブラウザが即更新）
+curl -s -X POST http://localhost:51123/model \
+  -H 'Content-Type: application/json' \
+  -d '{"signal":[{"name":"clk","wave":"P.P.P."},{"name":"d","wave":"x=.=.x","data":["A","B"]}]}'
+```
+
+ポートは `BRIDGE_PORT` 環境変数で変更可（既定 51123）。公開サイト(HTTPS)から
+`http://localhost` への接続はChromeでは通りますが、確実なのはローカル運用です。
+
 ## GitHub Pages へのデプロイ
 
 1. リポジトリ名は **ASCII の `timing-chart`** にする（非ASCIIはアセットURLが壊れる）。
