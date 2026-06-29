@@ -726,6 +726,7 @@ body {
   border: none;
   background: transparent;
   cursor: pointer;
+  touch-action: none; /* let touch sweeps paint instead of scrolling */
   display: flex;
   align-items: center;
   justify-content: center;

@@ -98,10 +98,12 @@ export interface EditorState {
 
   /**
    * Apply a model produced by the GUI; regenerates the text buffer.
-   * `coalesceText` collapses a run of inline text-field edits (signal/group
-   * name, bus label) into ONE undo step instead of one-per-keystroke.
+   * `coalesce` groups consecutive changes into ONE undo step: pass `true` for
+   * inline text-field edits (treated as key 'text'), or a unique string key per
+   * gesture (e.g. a drag) so that gesture collapses to one undo without merging
+   * into unrelated edits. Omit/`false` to always push a new undo entry.
    */
-  applyGuiModel: (model: WaveJson, coalesceText?: boolean) => void
+  applyGuiModel: (model: WaveJson, coalesce?: boolean | string) => void
   /** Update the raw text buffer without parsing (responsive typing). */
   setText: (text: string) => void
   /** Parse the current text buffer and, if valid, promote it to the model. */
@@ -123,11 +125,16 @@ function histPush(state: EditorState): Pick<EditorState, 'past' | 'future'> {
   return { past: [...state.past, state.model].slice(-HISTORY_CAP), future: [] }
 }
 
-// True when the latest model change came from a text commit. Used to coalesce a
-// run of debounced text commits into a single undo step. (editSource can't be
-// used: setText flips it to 'typing' before every commit, so it can neither
-// detect a continuation nor distinguish the first commit of a session.)
-let lastChangeWasText = false
+// Key of the group the latest model change belongs to (e.g. 'text', 'wavejson',
+// or a per-drag id). Consecutive changes sharing a non-null key coalesce into
+// one undo step; a different/empty key starts a new one.
+let lastCoalesceKey: string | null = null
+/** Map the public coalesce arg to an internal group key. */
+function coalesceKeyOf(coalesce: boolean | string | undefined): string | null {
+  if (coalesce === true) return 'text'
+  if (!coalesce) return null
+  return coalesce
+}
 
 export const useEditor = create<EditorState>((set, get) => ({
   model: startModel,
@@ -144,13 +151,13 @@ export const useEditor = create<EditorState>((set, get) => ({
   past: [],
   future: [],
 
-  applyGuiModel: (model, coalesceText = false) => {
+  applyGuiModel: (model, coalesce = false) => {
     detachShareHash() // first edit after opening a share link → own working copy
-    // Coalesce consecutive inline text-field edits into one undo step.
-    const coalesce = coalesceText && lastChangeWasText
-    lastChangeWasText = coalesceText
+    const key = coalesceKeyOf(coalesce)
+    const merge = key !== null && key === lastCoalesceKey
+    lastCoalesceKey = key
     set((state) => ({
-      ...(coalesce ? {} : histPush(state)),
+      ...(merge ? {} : histPush(state)),
       model,
       lastValidModel: model,
       // Don't clobber the text buffer the user is actively typing in.
@@ -181,10 +188,10 @@ export const useEditor = create<EditorState>((set, get) => ({
     // Coalesce a run of text-edit commits into ONE undo step: only the first
     // commit of a text-editing session records history (debounced typing would
     // otherwise flood the 50-entry stack and evict earlier GUI/load undo points).
-    const coalesce = lastChangeWasText
-    lastChangeWasText = true
+    const merge = lastCoalesceKey === 'wavejson'
+    lastCoalesceKey = 'wavejson'
     set((s) => ({
-      ...(coalesce ? {} : histPush(s)),
+      ...(merge ? {} : histPush(s)),
       model: res.model!,
       lastValidModel: res.model!,
       editSource: 'text',
@@ -201,7 +208,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   setTextFocused: (focused) => set({ textFocused: focused }),
 
   loadModel: (model) => {
-    lastChangeWasText = false
+    lastCoalesceKey = null
     detachShareHash() // loading a file/blank = own working copy, not the share snapshot
     set((state) => ({
       ...histPush(state),
@@ -222,7 +229,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   // injects config.skin from skinName; keep both in sync here).
   setSkin: (skin) => {
     detachShareHash()
-    lastChangeWasText = false
+    lastCoalesceKey = null
     set((state) => {
       const model = { ...state.model, config: { ...state.model.config, skin } }
       return {
@@ -242,7 +249,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   clearNotice: () => set({ notice: null }),
 
   undo: () => {
-    lastChangeWasText = false
+    lastCoalesceKey = null
     set((state) => {
       if (state.past.length === 0) return {}
       const prev = state.past[state.past.length - 1]
@@ -262,7 +269,7 @@ export const useEditor = create<EditorState>((set, get) => ({
   },
 
   redo: () => {
-    lastChangeWasText = false
+    lastCoalesceKey = null
     set((state) => {
       if (state.future.length === 0) return {}
       const next = state.future[state.future.length - 1]

@@ -120,14 +120,16 @@ export function SignalTable() {
   // Apply a cell edit. Returns the concrete state value that was painted so a
   // drag can repeat it across cells (null = nothing draggable: extend / cycle /
   // protected bus / no-op).
+  // `coalesceKey` groups this edit's undo with same-key edits (e.g. one drag).
   const applyCellAction = (
     path: number[],
     tick: number,
     mods: { altKey: boolean; shiftKey: boolean },
+    coalesceKey: boolean | string = false,
   ): string | null => {
     if (mods.altKey) {
       if (tick === 0) return null // tick 0 has nothing to extend from
-      applyGuiModel(extendCell(model, path, tick))
+      applyGuiModel(extendCell(model, path, tick), coalesceKey)
       return null
     }
     const sig = rowSignalAt(rows, path)
@@ -138,48 +140,65 @@ export function SignalTable() {
       // stray click (their label would be lost) — change those via the picker.
       if (isBusState(cur)) return null
       const v = cur === '1' ? '0' : '1'
-      applyGuiModel(setCellState(model, path, tick, v))
+      applyGuiModel(setCellState(model, path, tick, v), coalesceKey)
       return v
     }
     if (brush === 'cycle') {
       const next = cycle(cur, mods.shiftKey ? -1 : 1)
       if (next === cur) return null
-      applyGuiModel(setCellState(model, path, tick, next))
+      applyGuiModel(setCellState(model, path, tick, next), coalesceKey)
       return null // cycle is per-click, not a paintable run
     }
     // Paint the selected state. Missing/extension cells stay paintable so e.g.
     // a Low brush can draw on a short signal's tail.
     const c = cells[tick]
     if (c && c.head && c.value === brush) return brush
-    applyGuiModel(setCellState(model, path, tick, brush))
+    applyGuiModel(setCellState(model, path, tick, brush), coalesceKey)
     return brush
   }
 
-  // Drag-to-paint: hold and sweep to set a run of cells to one state.
+  // Drag-to-paint (mouse + touch via Pointer Events). Hold and sweep across a
+  // row to set a run of cells to one state; the whole sweep is one undo step.
   const dragValue = useRef<string | null>(null)
+  const dragRow = useRef<number>(-1)
+  const dragKey = useRef<string>('')
+  const dragSeq = useRef<number>(0)
   useEffect(() => {
-    const stop = () => (dragValue.current = null)
-    window.addEventListener('mouseup', stop)
-    return () => window.removeEventListener('mouseup', stop)
+    const onMove = (e: PointerEvent) => {
+      const v = dragValue.current
+      if (v === null) return
+      const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null
+      const dc = el?.closest('[data-cell]')?.getAttribute('data-cell')
+      if (!dc) return
+      const [r, t] = dc.split('-').map(Number)
+      if (r !== dragRow.current) return // keep the sweep on its own row
+      const m = useEditor.getState().model
+      const row = flattenSignals(m).filter((x) => x.kind === 'signal')[r]
+      if (!row?.signal) return
+      const cell = expandWave(row.signal.wave ?? '')[t]
+      if ((v === '0' || v === '1') && isBusState(cell?.value ?? '')) return // protect bus
+      if (cell && cell.head && cell.value === v) return
+      useEditor.getState().applyGuiModel(setCellState(m, row.path, t, v), dragKey.current)
+    }
+    const onUp = () => (dragValue.current = null)
+    document.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    return () => {
+      document.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
   }, [])
 
-  const onCellMouseDown = (path: number[], tick: number, sigIndex: number, e: React.MouseEvent) => {
-    if (e.button !== 0) return
-    e.preventDefault() // don't start a text selection while sweeping
+  const onCellPointerDown = (path: number[], tick: number, sigIndex: number, e: React.PointerEvent) => {
+    if (e.button > 0) return // ignore right/middle mouse buttons
+    e.preventDefault() // avoid text selection / page scroll while sweeping
     setSelectedPath(path)
     setFocusedCell({ r: sigIndex, t: tick })
-    dragValue.current = applyCellAction(path, tick, { altKey: e.altKey, shiftKey: e.shiftKey })
-  }
-
-  const onCellEnter = (path: number[], tick: number) => {
-    const v = dragValue.current
-    if (v === null) return
-    const sig = rowSignalAt(rows, path)
-    const cells = expandWave(sig?.wave ?? '')
-    const c = cells[tick]
-    if (brush === null && isBusState(c?.value ?? '')) return // keep protecting bus
-    if (c && c.head && c.value === v) return // already that — no churn
-    applyGuiModel(setCellState(model, path, tick, v), true) // coalesce the sweep into one undo
+    dragKey.current = `drag-${++dragSeq.current}`
+    const v = applyCellAction(path, tick, { altKey: e.altKey, shiftKey: e.shiftKey }, dragKey.current)
+    // Bus paints stay single-cell (a sweep would make many empty bus segments).
+    dragValue.current = v !== null && !isBusState(v) ? v : null
+    dragRow.current = sigIndex
   }
 
   // Only arrows are handled here. Enter/Space are intentionally NOT intercepted:
@@ -396,11 +415,10 @@ export function SignalTable() {
                           tabIndex={isFocused ? 0 : -1}
                           cellId={`${sigIndex}-${t}`}
                           onKeyDown={(e) => onCellKeyDown(sigIndex, t, e)}
-                          onMouseDown={(e) => {
+                          onPointerDown={(e) => {
                             e.stopPropagation()
-                            onCellMouseDown(row.path, t, sigIndex, e)
+                            onCellPointerDown(row.path, t, sigIndex, e)
                           }}
-                          onMouseEnter={() => onCellEnter(row.path, t)}
                           onClick={(e) => {
                             // Mouse already handled via mousedown/drag; only act on
                             // keyboard activation (Enter/Space → click with detail 0).
