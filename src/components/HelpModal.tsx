@@ -63,14 +63,14 @@ export function HelpModal({ onClose, onStartBlank, onLoadExample }: Props) {
         className="help-modal"
         role="dialog"
         aria-modal="true"
-        aria-label="はじめに / ヘルプ"
+        aria-labelledby="help-modal-title"
         onClick={(e) => e.stopPropagation()}
       >
         <button ref={closeRef} className="modal-close" onClick={onClose} aria-label="閉じる">
           ×
         </button>
 
-        <h1>タイミングチャート作図ツール</h1>
+        <h1 id="help-modal-title">タイミングチャート作図ツール</h1>
         <p className="help-lead">
           デジタル回路などの信号が、時間とともに <b>ON / OFF</b>{' '}
           する様子を波形で描く図（タイミングチャート）を、かんたんに作れます。

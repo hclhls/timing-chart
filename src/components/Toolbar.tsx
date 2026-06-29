@@ -188,6 +188,22 @@ export function Toolbar() {
               ))}
             </select>
           </label>
+          <label className="adv-row" title="図の横方向の伸縮（長い波形を読みやすく広げる）">
+            横の伸縮
+            <select
+              value={model.config?.hscale ?? 1}
+              onChange={(e) =>
+                applyGuiModel({
+                  ...model,
+                  config: { ...model.config, hscale: Number(e.target.value) },
+                })
+              }
+            >
+              <option value={1}>標準（1×）</option>
+              <option value={2}>広め（2×）</option>
+              <option value={3}>とても広い（3×）</option>
+            </select>
+          </label>
           <button
             onClick={toggleBridge}
             title={`Claude Code連携: ${DEFAULT_BRIDGE_URL} と双方向同期（開発者向け）`}

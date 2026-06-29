@@ -322,6 +322,9 @@ export const useEditor = create<EditorState>((set, get) => ({
 // Debounced so rapid edits don't hammer synchronous localStorage I/O.
 let lastSavedModel: WaveJson = startModel
 let saveTimer: number | undefined
+// Warn at most once per failure episode so a full/disabled storage doesn't spam
+// toasts on every keystroke; reset when a save succeeds again.
+let autosaveWarned = false
 useEditor.subscribe((state) => {
   if (state.model === lastSavedModel) return
   lastSavedModel = state.model
@@ -330,8 +333,20 @@ useEditor.subscribe((state) => {
     saveTimer = undefined // clear so the pagehide flush guard stays meaningful
     try {
       localStorage.setItem(STORAGE_KEY, serializeModel(state.model))
+      autosaveWarned = false
     } catch {
-      // storage full / disabled — best-effort autosave, ignore.
+      // storage full / disabled — the UI claims "自動保存済み", so the user must
+      // be told the promise broke, once, and steered to file export.
+      if (!autosaveWarned) {
+        autosaveWarned = true
+        try {
+          useEditor
+            .getState()
+            .flash('自動保存に失敗しました（保存容量超過か無効）。「⚙ その他 → ファイルに保存」で保存してください')
+        } catch {
+          /* ignore */
+        }
+      }
     }
   }, 400)
 })

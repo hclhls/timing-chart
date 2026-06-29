@@ -34,9 +34,13 @@ export function WaveJsonEditor() {
     <section className="text-editor">
       <div className="pane-title">WaveJSON</div>
       {parseError ? (
-        <div className="banner banner-error">{parseError}</div>
+        <div className="banner banner-error" role="alert">
+          {parseError}
+        </div>
       ) : (
-        <div className="banner banner-ok">構文OK</div>
+        <div className="banner banner-ok" role="status" aria-live="polite">
+          構文OK
+        </div>
       )}
       <textarea
         className="wavejson-textarea"
