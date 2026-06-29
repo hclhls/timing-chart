@@ -8,7 +8,13 @@ import { svgToString, svgPixelSize } from './svg'
 const MAX_SIDE = 16384
 const MAX_AREA = 16384 * 8192
 
-export async function svgToPngBlob(svg: SVGSVGElement, scale = 2, bg = '#ffffff'): Promise<Blob> {
+export interface PngResult {
+  blob: Blob
+  /** The scale actually used — may be below `scale` if clamped to canvas limits. */
+  effectiveScale: number
+}
+
+export async function svgToPngBlob(svg: SVGSVGElement, scale = 2, bg = '#ffffff'): Promise<PngResult> {
   const raw = svgPixelSize(svg)
   // Guard against degenerate viewBox values (0/negative/NaN) before scaling.
   const width = Number.isFinite(raw.width) && raw.width > 0 ? raw.width : 600
@@ -41,10 +47,11 @@ export async function svgToPngBlob(svg: SVGSVGElement, scale = 2, bg = '#ffffff'
   ctx.fillRect(0, 0, canvas.width, canvas.height)
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
 
-  return await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (blob) resolve(blob)
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((b) => {
+      if (b) resolve(b)
       else reject(new Error('PNG への変換に失敗しました'))
     }, 'image/png')
   })
+  return { blob, effectiveScale: eff }
 }

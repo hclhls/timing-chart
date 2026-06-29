@@ -172,6 +172,12 @@ export function SignalTable() {
     // a Low brush can draw on a short signal's tail.
     const c = cells[tick]
     if (c && c.head && c.value === brush) return brush
+    // Protect a data-bearing bus cell from a stray High/Low brush click (its
+    // label would be silently dropped) — same rule the toggle and drag use.
+    if ((brush === '0' || brush === '1') && isBusState(cur)) {
+      flash('ここはバス区間です。下の「バス値」で値を編集できます')
+      return null
+    }
     applyGuiModel(setCellState(model, path, tick, brush), coalesceKey)
     return brush
   }

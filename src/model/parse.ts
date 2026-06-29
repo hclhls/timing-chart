@@ -43,9 +43,26 @@ export function parseModel(text: string): ParseResult {
 }
 
 function isValidLane(lane: unknown): boolean {
-  if (typeof lane === 'string') return true
-  if (Array.isArray(lane)) return lane.every((l) => isValidLane(l))
-  return typeof lane === 'object' && lane !== null
+  if (typeof lane === 'string') return true // group label
+  if (Array.isArray(lane)) {
+    // A group is [label, ...items]; a truly empty [] carries neither and would
+    // persist as an invisible dead lane — reject it.
+    if (lane.length === 0) return false
+    return lane.every((l) => isValidLane(l))
+  }
+  if (typeof lane !== 'object' || lane === null) return false
+  // A signal object: validate the field TYPES, not just presence. A wave that
+  // isn't a string (or data that isn't string/array) crashes expandWave/split
+  // on render — and once autosaved, traps the app on reload. The bridge already
+  // rejects these; the share-URL / localStorage path must be just as strict.
+  const l = lane as Record<string, unknown>
+  if ('wave' in l && typeof l.wave !== 'string') return false
+  if ('name' in l && typeof l.name !== 'string') return false
+  if ('node' in l && typeof l.node !== 'string') return false
+  if ('data' in l && !(typeof l.data === 'string' || Array.isArray(l.data))) return false
+  if ('period' in l && typeof l.period !== 'number') return false
+  if ('phase' in l && typeof l.phase !== 'number') return false
+  return true
 }
 
 function formatJson5Error(e: unknown): string {

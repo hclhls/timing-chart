@@ -63,15 +63,21 @@ export function Toolbar() {
   const exportSvg = () => {
     const svg = getLatestSvg()
     if (!svg) return flash('描画SVGが見つかりません')
-    downloadText(svgToString(svg), 'timing-chart.svg', 'image/svg+xml')
+    // Pass the skin background so a dark-skin SVG isn't transparent-on-white.
+    downloadText(svgToString(svg, SKIN_BG[skinName]), 'timing-chart.svg', 'image/svg+xml')
   }
 
   const exportPng = async () => {
     const svg = getLatestSvg()
     if (!svg) return flash('描画SVGが見つかりません')
     try {
-      const blob = await svgToPngBlob(svg, pngScale, SKIN_BG[skinName])
+      const { blob, effectiveScale } = await svgToPngBlob(svg, pngScale, SKIN_BG[skinName])
       downloadBlob(blob, 'timing-chart.png')
+      // The chart was too big for the requested scale — say so instead of
+      // handing back a silently lower-resolution image.
+      if (effectiveScale < pngScale - 0.01) {
+        flash(`図が大きいため ${effectiveScale.toFixed(1)}× で書き出しました（上限による調整）`)
+      }
     } catch (e) {
       flash(e instanceof Error ? e.message : 'PNG出力に失敗')
     }

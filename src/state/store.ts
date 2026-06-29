@@ -221,7 +221,13 @@ export const useEditor = create<EditorState>((set, get) => ({
     }))
   },
 
-  setTextFocused: (focused) => set({ textFocused: focused }),
+  setTextFocused: (focused) => {
+    // Start a fresh undo session each time the user (re)enters the text box, so
+    // separate editing bursts across blur/focus don't all collapse into a single
+    // Ctrl+Z that wipes minutes of work.
+    if (focused) lastCoalesceKey = null
+    set({ textFocused: focused })
+  },
 
   loadModel: (model) => {
     lastCoalesceKey = null

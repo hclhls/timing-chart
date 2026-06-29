@@ -55,3 +55,31 @@ test('groups, hscale and a non-default skin render without throwing', () => {
   })
   assert.ok(svg.startsWith('<svg'))
 })
+
+// Mirror src/model/parse.ts isValidLane — guards the share-URL / localStorage
+// path against malformed models that would crash the tab and trap it on reload.
+// (Kept in sync by hand; the app parser is TypeScript and not importable here.)
+function isValidLane(lane) {
+  if (typeof lane === 'string') return true
+  if (Array.isArray(lane)) return lane.length > 0 && lane.every(isValidLane)
+  if (typeof lane !== 'object' || lane === null) return false
+  if ('wave' in lane && typeof lane.wave !== 'string') return false
+  if ('name' in lane && typeof lane.name !== 'string') return false
+  if ('node' in lane && typeof lane.node !== 'string') return false
+  if ('data' in lane && !(typeof lane.data === 'string' || Array.isArray(lane.data))) return false
+  if ('period' in lane && typeof lane.period !== 'number') return false
+  if ('phase' in lane && typeof lane.phase !== 'number') return false
+  return true
+}
+
+test('lane validation rejects the crash-inducing shapes', () => {
+  assert.equal(isValidLane({ name: 'a', wave: 5 }), false) // non-string wave → expandWave crash
+  assert.equal(isValidLane({ name: 'a', wave: '01', data: 5 }), false) // non-array data → split crash
+  assert.equal(isValidLane({ name: 7, wave: '01' }), false)
+  assert.equal(isValidLane([]), false) // empty dead lane
+  // valid shapes still pass
+  assert.equal(isValidLane({ name: 'a', wave: '01', data: ['x'] }), true)
+  assert.equal(isValidLane(['group', { name: 'a', wave: '0' }]), true)
+  assert.equal(isValidLane('label'), true)
+  assert.equal(isValidLane({ name: 'clk', wave: 'p', period: 2, phase: 0.5 }), true)
+})
