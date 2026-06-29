@@ -10,6 +10,7 @@ import {
   busHeadTicks,
   isBusState,
 } from '../model/wave-codec'
+import { clockWave } from '../model/clockgen'
 import { flattenSignals, usedNodeLetters } from './selectors'
 
 /** Replace the lane at `path` by applying `updater`; returns a new lane array. */
@@ -166,8 +167,14 @@ export function uniqueName(model: WaveJson, base: string): string {
   return `${base}${n}`
 }
 
+/** Turn an existing signal into a full-length clock (period over all columns). */
+export function makeClock(model: WaveJson, path: number[]): WaveJson {
+  const ticks = currentMaxTicks(model)
+  return updateSignal(model, path, (sig) => withData({ ...sig, wave: clockWave('p', ticks) }, []))
+}
+
 /** Append a new signal at the top level, with a unique name. */
-export function addSignal(model: WaveJson, base = 'sig'): WaveJson {
+export function addSignal(model: WaveJson, base = '信号'): WaveJson {
   const ticks = currentMaxTicks(model)
   const wave = '0'.padEnd(ticks, '.')
   return { ...model, signal: [...model.signal, { name: uniqueName(model, base), wave }] }
@@ -229,7 +236,7 @@ export function addGroup(model: WaveJson): WaveJson {
   const used = existingGroupLabels(model)
   let label = 'グループ'
   for (let n = 2; used.has(label); n++) label = `グループ${n}`
-  const group: WaveLane = [label, { name: uniqueName(model, 'sig'), wave }]
+  const group: WaveLane = [label, { name: uniqueName(model, '信号'), wave }]
   return { ...model, signal: [...model.signal, group] }
 }
 
@@ -249,7 +256,7 @@ export function addSignalToGroup(model: WaveJson, labelPath: number[]): WaveJson
   const groupPath = labelPath.slice(0, -1)
   const ticks = currentMaxTicks(model)
   const wave = '0'.padEnd(ticks, '.')
-  const sig: WaveLane = { name: uniqueName(model, 'sig'), wave }
+  const sig: WaveLane = { name: uniqueName(model, '信号'), wave }
   return {
     ...model,
     signal: updateLane(model.signal, groupPath, (g) => [...(g as WaveLane[]), sig]),

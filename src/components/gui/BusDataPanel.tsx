@@ -29,21 +29,22 @@ export function BusDataPanel() {
   if (segments === 0) {
     return (
       <div className="bus-panel muted">
-        「{sig.name || '(無名)'}」にバス値（=, 2〜9）はありません
+        「{sig.name || '(無名)'}」にバス区間はありません。状態「バス（値）」でマスを塗ると作れます。
       </div>
     )
   }
 
   return (
     <div className="bus-panel">
-      <div className="bus-panel-title">バス値: {sig.name || '(無名)'}</div>
+      <div className="bus-panel-title">「{sig.name || '(無名)'}」のバスに流す値</div>
       <div className="bus-chips">
         {Array.from({ length: segments }, (_, i) => (
           <label key={i} className="bus-chip">
-            <span className="chip-index">#{i}</span>
+            <span className="chip-index">{i + 1}つ目</span>
             <input
               value={data[i] ?? ''}
-              placeholder="値"
+              placeholder="例: 0xFF"
+              autoFocus={i === 0 && (data[i] ?? '') === ''}
               onChange={(e) => applyGuiModel(setDataLabel(model, selectedPath, i, e.target.value), true)}
             />
           </label>

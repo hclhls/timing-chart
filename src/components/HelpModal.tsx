@@ -1,10 +1,13 @@
 // First-run welcome + always-available help. Explains what the tool is, the
 // 3-step flow, and a plain-language legend of the symbols/colors a novice sees.
 import { useEffect, useRef } from 'react'
+import { EXAMPLES } from '../examples'
+import type { WaveJson } from '../model/wavejson'
 
 interface Props {
   onClose: () => void
   onStartBlank: () => void
+  onLoadExample: (model: WaveJson) => void
 }
 
 const LEGEND: { sample: string; cls: string; name: string; desc: string }[] = [
@@ -17,7 +20,7 @@ const LEGEND: { sample: string; cls: string; name: string; desc: string }[] = [
   { sample: '┊', cls: 'state-gap', name: 'ギャップ', desc: '波形を省略する区切り' },
 ]
 
-export function HelpModal({ onClose, onStartBlank }: Props) {
+export function HelpModal({ onClose, onStartBlank, onLoadExample }: Props) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
 
@@ -98,6 +101,15 @@ export function HelpModal({ onClose, onStartBlank }: Props) {
             </li>
           ))}
         </ul>
+        <h2>例から始める</h2>
+        <div className="example-grid">
+          {EXAMPLES.map((ex) => (
+            <button key={ex.id} className="example-card" onClick={() => onLoadExample(ex.model)}>
+              {ex.name}
+            </button>
+          ))}
+        </div>
+
         <p className="help-note">
           間違えても <b>「戻す」(Ctrl+Z)</b> でいつでも元に戻せます。編集は自動保存されます。
         </p>

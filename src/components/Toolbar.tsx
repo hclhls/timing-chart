@@ -169,9 +169,15 @@ export function Toolbar() {
       <details className="adv-menu">
         <summary title="その他・上級者向け">⚙ その他</summary>
         <div className="adv-pop">
-          <button onClick={exportSvg}>SVGで保存</button>
-          <button onClick={exportJson}>JSONで保存</button>
-          <button onClick={() => fileRef.current?.click()}>JSONを読込</button>
+          <button onClick={exportJson} title="作りかけを保存（別の端末へ持ち運ぶ用）">
+            ファイルに保存
+          </button>
+          <button onClick={() => fileRef.current?.click()} title="保存したファイルを開く">
+            ファイルを開く
+          </button>
+          <button onClick={exportSvg} title="ベクター画像(SVG)で保存">
+            SVGで保存
+          </button>
           <label className="adv-row">
             スキン（見た目）
             <select value={skinName} onChange={(e) => setSkin(e.target.value as SkinName)}>
@@ -208,7 +214,7 @@ export function Toolbar() {
             : '編集内容はこのブラウザに自動保存されます'
         }
       >
-        {viewingShared ? '共有リンク表示中' : '自動保存'}
+        {viewingShared ? '共有リンク表示中' : 'このブラウザに保存'}
       </span>
 
       <span className="toast-region" role="status" aria-live="polite">

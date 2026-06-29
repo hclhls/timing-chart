@@ -13,6 +13,7 @@ import {
   addSignalToGroup,
   removeRow,
   moveRow,
+  makeClock,
   addTick,
   removeTick,
 } from '../../state/actions'
@@ -432,6 +433,13 @@ function RowControls({ path }: { path: number[] }) {
         aria-label="信号を下へ移動"
       >
         ▼
+      </button>
+      <button
+        onClick={() => applyGuiModel(makeClock(model, path))}
+        title="この信号をクロック（周期信号）にする"
+        aria-label="この信号をクロックにする"
+      >
+        ⎍
       </button>
       <button
         onClick={() => restructure(removeRow(model, path))}

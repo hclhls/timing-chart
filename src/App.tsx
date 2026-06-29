@@ -130,6 +130,10 @@ export default function App() {
             loadModel(BLANK)
             closeHelp()
           }}
+          onLoadExample={(m) => {
+            loadModel(m)
+            closeHelp()
+          }}
         />
       )}
       <Toolbar />
@@ -165,7 +169,9 @@ export default function App() {
             <BusDataPanel />
           </details>
           <details className="panel">
-            <summary>注釈（セットアップ / ホールド）{edgeCount > 0 ? ` (${edgeCount})` : ''}</summary>
+            <summary>
+              注釈（上級）: 信号間の矢印{edgeCount > 0 ? ` (${edgeCount})` : ''}
+            </summary>
             <EdgeEditor />
           </details>
         </div>

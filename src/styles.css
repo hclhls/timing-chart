@@ -297,6 +297,25 @@ body {
   font-size: 13px;
   line-height: 1.4;
 }
+.example-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.example-card {
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+}
+.example-card:hover {
+  border-color: var(--accent);
+  background: var(--accent-weak);
+}
 .help-note {
   background: var(--accent-weak);
   border-radius: 8px;
@@ -629,7 +648,7 @@ body {
   background: #fff;
 }
 .ctrl-col {
-  width: 64px;
+  width: 84px;
 }
 .row-controls {
   display: inline-flex;
