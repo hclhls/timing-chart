@@ -11,13 +11,8 @@ import { PreviewPane } from './components/preview/PreviewPane'
 import { HelpModal } from './components/HelpModal'
 
 const HELP_SEEN_KEY = 'timing-chart:seen-help'
-const BLANK = {
-  signal: [
-    { name: 'clk', wave: 'P....' },
-    { name: 'data', wave: '0....' },
-  ],
-  config: { hscale: 1 },
-}
+// A truly blank document → the empty-state guide walks the user from zero.
+const BLANK = { signal: [], config: { hscale: 1 } }
 
 type Tab = 'gui' | 'text' | 'preview'
 const TABS: { id: Tab; label: string }[] = [
@@ -32,9 +27,11 @@ export default function App() {
   const model = useEditor((s) => s.model)
   const loadModel = useEditor((s) => s.loadModel)
 
-  // Show the welcome/help on first visit; reopenable via the ? button.
+  // Show the welcome/help on first visit; reopenable via the ? button. Don't
+  // cover a shared-link view with it (the visitor came to see that chart).
   const [helpOpen, setHelpOpen] = useState(() => {
     try {
+      if (useEditor.getState().viewingShared) return false
       return !localStorage.getItem(HELP_SEEN_KEY)
     } catch {
       return true
@@ -62,11 +59,10 @@ export default function App() {
   const edgeCount = model.edge?.length ?? 0
 
   const [busOpen, setBusOpen] = useState(false)
-  // Auto-reveal the bus panel whenever the selected signal HAS bus values —
-  // including when bus values are painted onto the already-selected row
-  // (so depend on busCount, not just selectedPath).
+  // Reflect the bus panel to the selected signal: open when it has bus values
+  // (incl. when painted onto the current row), close when it has none.
   useEffect(() => {
-    if (busCount > 0) setBusOpen(true)
+    setBusOpen(busCount > 0)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPath, busCount])
 

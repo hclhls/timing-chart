@@ -1,5 +1,6 @@
 // First-run welcome + always-available help. Explains what the tool is, the
 // 3-step flow, and a plain-language legend of the symbols/colors a novice sees.
+import { useEffect, useRef } from 'react'
 
 interface Props {
   onClose: () => void
@@ -17,16 +18,52 @@ const LEGEND: { sample: string; cls: string; name: string; desc: string }[] = [
 ]
 
 export function HelpModal({ onClose, onStartBlank }: Props) {
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
+
+  // Focus the dialog on open; Esc closes; keep Tab focus inside the dialog.
+  useEffect(() => {
+    const prev = document.activeElement as HTMLElement | null
+    closeRef.current?.focus()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onClose()
+        return
+      }
+      if (e.key !== 'Tab') return
+      const focusables = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], select, input, [tabindex]:not([tabindex="-1"])',
+      )
+      if (!focusables || focusables.length === 0) return
+      const first = focusables[0]
+      const last = focusables[focusables.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      prev?.focus?.() // restore focus to where it was
+    }
+  }, [onClose])
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div
+        ref={dialogRef}
         className="help-modal"
         role="dialog"
         aria-modal="true"
         aria-label="はじめに / ヘルプ"
         onClick={(e) => e.stopPropagation()}
       >
-        <button className="modal-close" onClick={onClose} aria-label="閉じる">
+        <button ref={closeRef} className="modal-close" onClick={onClose} aria-label="閉じる">
           ×
         </button>
 

@@ -38,14 +38,14 @@ const PRIMARY: { v: Brush; label: string }[] = [
   { v: null, label: 'High/Low切替' },
   { v: '1', label: 'High（オン）' },
   { v: '0', label: 'Low（オフ）' },
-  { v: 'P', label: 'クロック' },
+  { v: 'p', label: 'クロック' },
   { v: '=', label: 'バス（値）' },
   { v: 'x', label: '不定 X' },
   { v: 'z', label: 'Z（切断）' },
   { v: 'cycle', label: '順送り' },
 ]
 const DETAIL: { v: string; label: string }[] = [
-  { v: 'p', label: 'クロック（矢印なし）' },
+  { v: 'P', label: 'クロック（矢印つき）' },
   { v: 'n', label: 'クロック↓' },
   { v: 'N', label: 'クロック↓（矢印）' },
   { v: '2', label: 'バス2' },
@@ -120,7 +120,9 @@ export function SignalTable() {
     const cells = expandWave(sig?.wave ?? '')
     const cur = cells[tick]?.value ?? '0'
     if (brush === null) {
-      // Default: simple High/Low toggle. Any odd state resets to High first.
+      // Default: simple High/Low toggle. Protect data-bearing bus cells from a
+      // stray click (their label would be lost) — change those via the picker.
+      if (isBusState(cur)) return
       applyGuiModel(setCellState(model, path, tick, cur === '1' ? '0' : '1'))
       return
     }
@@ -216,7 +218,7 @@ export function SignalTable() {
         </div>
       )}
 
-      <div className="table-scroll">
+      <div className="table-scroll" hidden={signalPaths.length === 0}>
         <table className="grid">
           <thead>
             <tr>

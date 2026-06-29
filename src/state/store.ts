@@ -202,6 +202,7 @@ export const useEditor = create<EditorState>((set, get) => ({
 
   loadModel: (model) => {
     lastChangeWasText = false
+    detachShareHash() // loading a file/blank = own working copy, not the share snapshot
     set((state) => ({
       ...histPush(state),
       model,
