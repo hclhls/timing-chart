@@ -59,10 +59,21 @@ function loadPersisted(): WaveJson | null {
 }
 
 const share = readShare()
-const startModel: WaveJson = share.model ?? loadPersisted() ?? DEFAULT_MODEL
-// If a #d= link was present but failed to decode, surface it once on mount
-// instead of silently showing the default (which looks like the sender's doc).
-const startNotice = share.present && !share.model ? '共有リンクが壊れています（デフォルトを表示）' : null
+const persistedAtStart = loadPersisted()
+const startModel: WaveJson = share.model ?? persistedAtStart ?? DEFAULT_MODEL
+// Startup notice: a broken share link, or a warning that editing a shared view
+// will overwrite the user's own saved draft (silent loss otherwise).
+const startNotice = (() => {
+  if (share.present && !share.model) return '共有リンクが壊れています（デフォルトを表示）'
+  if (
+    share.model &&
+    persistedAtStart &&
+    serializeModel(persistedAtStart) !== serializeModel(share.model)
+  ) {
+    return '共有リンクを表示中です。編集すると、このブラウザに保存中の作図が置き換わります。'
+  }
+  return null
+})()
 
 export interface EditorState {
   /** Canonical model — the single source of truth that drives rendering. */

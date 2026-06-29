@@ -306,7 +306,10 @@ export function SignalTable() {
                         aria-label="グループ名"
                         value={row.label ?? ''}
                         onChange={(e) =>
-                          applyGuiModel(setGroupLabel(model, row.path, e.target.value), true)
+                          applyGuiModel(
+                            setGroupLabel(model, row.path, e.target.value),
+                            `glabel:${row.path.join(',')}`,
+                          )
                         }
                       />
                       <span className="group-controls">
@@ -389,7 +392,10 @@ export function SignalTable() {
                       placeholder="信号名"
                       value={sig.name ?? ''}
                       onChange={(e) =>
-                        applyGuiModel(setSignalName(model, row.path, e.target.value), true)
+                        applyGuiModel(
+                          setSignalName(model, row.path, e.target.value),
+                          `name:${row.path.join(',')}`,
+                        )
                       }
                       onClick={(e) => e.stopPropagation()}
                     />

@@ -44,7 +44,12 @@ export function BusDataPanel() {
             <input
               value={data[i] ?? ''}
               placeholder="例: 0xFF"
-              onChange={(e) => applyGuiModel(setDataLabel(model, selectedPath, i, e.target.value), true)}
+              onChange={(e) =>
+                applyGuiModel(
+                  setDataLabel(model, selectedPath, i, e.target.value),
+                  `data:${selectedPath.join(',')}:${i}`,
+                )
+              }
             />
           </label>
         ))}
