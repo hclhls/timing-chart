@@ -8,6 +8,19 @@ const HASH_KEY = 'd'
 // chart compresses to well under these.
 const MAX_PAYLOAD = 1_000_000
 const MAX_JSON = 2_000_000
+// Even within the size cap, a link could pack thousands of signals to freeze the
+// renderer. Reject absurd counts (a real chart is well under this).
+const MAX_SIGNALS = 2000
+
+/** Count signal objects in a lane tree (groups nest), short-circuiting at the cap. */
+function countSignals(lanes: unknown[], acc = { n: 0 }): number {
+  for (const l of lanes) {
+    if (Array.isArray(l)) countSignals(l, acc)
+    else if (l && typeof l === 'object') acc.n++
+    if (acc.n > MAX_SIGNALS) break
+  }
+  return acc.n
+}
 
 /** Encode a model into a compressed share string for the URL hash. */
 export function encodeShare(model: WaveJson): string {
@@ -48,7 +61,9 @@ export function readShare(): ShareRead {
     const json = decompressFromEncodedURIComponent(payload)
     if (!json || json.length > MAX_JSON) return { present: true, model: null }
     // Accepts the versioned envelope and a legacy bare-model share link.
-    return { present: true, model: parseEnvelope(json) }
+    const model = parseEnvelope(json)
+    if (model && countSignals(model.signal) > MAX_SIGNALS) return { present: true, model: null }
+    return { present: true, model }
   } catch {
     return { present: true, model: null }
   }
