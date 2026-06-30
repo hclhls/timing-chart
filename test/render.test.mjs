@@ -92,6 +92,38 @@ test('font fallback appends a portable stack to bare Helvetica', () => {
   assert.equal(addFontFallback('text{font-family:Menlo}'), 'text{font-family:Menlo}')
 })
 
+// Mirror src/model/persistence.ts (TS, not importable here). Guards the
+// versioned-envelope round-trip AND backward-compatible reading of a legacy
+// bare model (pre-versioning) from localStorage / share links.
+const SCHEMA_VERSION = 1
+function serializeEnvelope(model) {
+  return JSON.stringify({ v: SCHEMA_VERSION, model })
+}
+function unwrapEnvelope(parsed) {
+  if (
+    parsed &&
+    typeof parsed === 'object' &&
+    !Array.isArray(parsed) &&
+    'v' in parsed &&
+    'model' in parsed
+  ) {
+    return parsed.model
+  }
+  return parsed
+}
+
+test('schema envelope round-trips and still reads legacy bare models', () => {
+  const model = { signal: [{ name: 'a', wave: '01' }], config: { hscale: 1 } }
+  // New envelope: serialize → parse → unwrap recovers the exact model.
+  const enc = serializeEnvelope(model)
+  assert.equal(enc.startsWith('{"v":1,"model":'), true)
+  assert.deepEqual(unwrapEnvelope(JSON.parse(enc)), model)
+  // Legacy bare model (no v/model wrapper): passes through unchanged.
+  assert.deepEqual(unwrapEnvelope(JSON.parse(JSON.stringify(model))), model)
+  // A bare model has neither `v` nor `model`, so it can't be misread as envelope.
+  assert.equal('v' in model || 'model' in model, false)
+})
+
 test('lane validation rejects the crash-inducing shapes', () => {
   assert.equal(isValidLane({ name: 'a', wave: 5 }), false) // non-string wave → expandWave crash
   assert.equal(isValidLane({ name: 'a', wave: '01', data: 5 }), false) // non-array data → split crash

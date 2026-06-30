@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { WaveJson } from '../model/wavejson'
 import { serializeModel } from '../model/serialize'
 import { parseModel } from '../model/parse'
+import { serializeEnvelope, parseEnvelope } from '../model/persistence'
 import type { SkinName } from '../render/skins'
 import { DEFAULT_MODEL } from './defaultModel'
 import { readShare } from '../share/url'
@@ -59,8 +60,8 @@ function loadPersisted(): WaveJson | null {
   try {
     const s = localStorage.getItem(STORAGE_KEY)
     if (!s) return null
-    const res = parseModel(s)
-    return res.ok && res.model ? res.model : null
+    // Accepts the versioned envelope and a legacy bare model (pre-versioning).
+    return parseEnvelope(s)
   } catch {
     return null
   }
@@ -368,7 +369,7 @@ useEditor.subscribe((state) => {
   saveTimer = window.setTimeout(() => {
     saveTimer = undefined // clear so the pagehide flush guard stays meaningful
     try {
-      localStorage.setItem(STORAGE_KEY, serializeModel(state.model))
+      localStorage.setItem(STORAGE_KEY, serializeEnvelope(state.model))
       autosaveWarned = false
     } catch {
       // storage full / disabled — the UI claims "自動保存済み", so the user must
@@ -394,7 +395,7 @@ function flushSave(): void {
   window.clearTimeout(saveTimer)
   saveTimer = undefined
   try {
-    localStorage.setItem(STORAGE_KEY, serializeModel(useEditor.getState().model))
+    localStorage.setItem(STORAGE_KEY, serializeEnvelope(useEditor.getState().model))
   } catch {
     /* ignore */
   }

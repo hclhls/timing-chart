@@ -1,12 +1,12 @@
 import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from 'lz-string'
 import type { WaveJson } from '../model/wavejson'
-import { parseModel } from '../model/parse'
+import { serializeEnvelope, parseEnvelope } from '../model/persistence'
 
 const HASH_KEY = 'd'
 
 /** Encode a model into a compressed share string for the URL hash. */
 export function encodeShare(model: WaveJson): string {
-  return compressToEncodedURIComponent(JSON.stringify(model))
+  return compressToEncodedURIComponent(serializeEnvelope(model))
 }
 
 /** Build a full shareable URL (current origin+path, model in the hash). */
@@ -41,8 +41,8 @@ export function readShare(): ShareRead {
   try {
     const json = decompressFromEncodedURIComponent(payload)
     if (!json) return { present: true, model: null }
-    const res = parseModel(json)
-    return { present: true, model: res.ok && res.model ? res.model : null }
+    // Accepts the versioned envelope and a legacy bare-model share link.
+    return { present: true, model: parseEnvelope(json) }
   } catch {
     return { present: true, model: null }
   }
