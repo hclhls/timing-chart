@@ -21,6 +21,7 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = fileURLToPath(new URL('../dist', import.meta.url))
 const MAX_BODY = 5_000_000
+const MAX_CLIENTS = 50 // cap SSE connections so a local actor can't exhaust FDs
 const ALLOW_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/
 
 /** The single shared model + a monotonic revision and the last editor's id. */
@@ -107,7 +108,17 @@ function broadcast() {
 
 async function serveStatic(pathname, res) {
   // The built app uses base /timing-chart/; strip it so assets resolve here.
-  let rel = decodeURIComponent(pathname).replace(/^\/timing-chart/, '')
+  // decodeURIComponent throws URIError on a malformed % sequence (e.g. /%C0);
+  // catch it here — uncaught it would crash the whole bridge process.
+  let decoded
+  try {
+    decoded = decodeURIComponent(pathname)
+  } catch {
+    res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' })
+    res.end('bad request')
+    return
+  }
+  let rel = decoded.replace(/^\/timing-chart/, '')
   if (rel === '' || rel === '/') rel = '/index.html'
   const file = normalize(join(ROOT, rel))
   // Must be ROOT itself or strictly inside it. A bare startsWith(ROOT) would
@@ -197,6 +208,10 @@ function handler(req, res) {
   }
 
   if (pathname === '/events') {
+    if (clients.size >= MAX_CLIENTS) {
+      json(res, 503, { ok: false, error: 'too many SSE connections' })
+      return
+    }
     res.writeHead(200, {
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache',
@@ -228,6 +243,10 @@ export function createBridge() {
 
 export function start(port = Number(process.env.BRIDGE_PORT ?? 51123)) {
   const server = createBridge()
+  // Bound slow/oversized requests (slowloris) — a request must finish headers
+  // and body within these windows or the socket is dropped.
+  server.headersTimeout = 10_000
+  server.requestTimeout = 30_000
   // 127.0.0.1 only — never expose the chart to the LAN.
   server.listen(port, '127.0.0.1', () => {
     console.log(`timing-chart bridge → http://localhost:${port}  (127.0.0.1 のみ)`)
@@ -239,5 +258,9 @@ export function start(port = Number(process.env.BRIDGE_PORT ?? 51123)) {
 
 // Auto-start only when run directly (not when imported by tests).
 if (process.argv[1] && fileURLToPath(import.meta.url) === normalize(process.argv[1])) {
+  // Last-resort net (only for the standalone bridge, not under the test runner):
+  // a stray unhandled error must not take the long-running helper down.
+  process.on('uncaughtException', (e) => console.error('bridge uncaught:', e?.message ?? e))
+  process.on('unhandledRejection', (e) => console.error('bridge rejection:', e?.message ?? e))
   start()
 }

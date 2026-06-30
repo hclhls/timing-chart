@@ -72,6 +72,23 @@ test('non-loopback Host is rejected (DNS-rebinding guard)', async () => {
   assert.equal(await rawPost({ 'Content-Type': 'application/json', Host: 'evil.example' }), 403)
 })
 
+const rawGet = (path) =>
+  new Promise((resolve) => {
+    const u = new URL(base)
+    const req = http.request({ hostname: u.hostname, port: u.port, path, method: 'GET' }, (res) => {
+      res.resume()
+      resolve(res.statusCode)
+    })
+    req.on('error', () => resolve(0))
+    req.end()
+  })
+
+test('malformed %-encoding → 400, server survives (no crash)', async () => {
+  assert.equal(await rawGet('/%C0'), 400) // would throw URIError if unguarded
+  const h = await (await fetch(`${base}/health`)).json() // still alive
+  assert.equal(h.ok, true)
+})
+
 test('POST signal with non-string wave → 400 (would crash the tab)', async () => {
   assert.equal((await post({ signal: [{ name: 'a', wave: 123 }] })).status, 400)
   assert.equal((await post({ signal: [{ name: 7, wave: '01' }] })).status, 400)
