@@ -145,7 +145,7 @@ export function Toolbar() {
     // Build one message so a length warning doesn't overwrite the success line.
     const base = copied ? '共有リンクをコピーしました' : 'URLを更新しました（コピーは手動で）'
     let suffix = ''
-    if (url.length > 8000) suffix = ' ⚠ リンクが長すぎ、一部環境で開けない場合があります'
+    if (url.length > 8000) suffix = '（注意）リンクが長すぎ、一部環境で開けない場合があります'
     else if (url.length > 2000) suffix = '（やや長め）'
     flash(base + suffix)
   }
@@ -169,10 +169,10 @@ export function Toolbar() {
 
       <div className="tb-group">
         <button onClick={undo} disabled={!canUndo} title="元に戻す (Ctrl+Z)" aria-label="元に戻す">
-          ↶ 戻す
+          戻す
         </button>
         <button onClick={redo} disabled={!canRedo} title="やり直し (Ctrl+Y)" aria-label="やり直し">
-          ↷ やり直し
+          やり直し
         </button>
       </div>
 
@@ -206,7 +206,7 @@ export function Toolbar() {
       </div>
 
       <details className="adv-menu">
-        <summary title="その他・上級者向け">⚙ その他</summary>
+        <summary title="その他・上級者向け">その他</summary>
         <div className="adv-pop">
           <button onClick={exportJson} title="作りかけを保存（別の端末へ持ち運ぶ用）">
             ファイルに保存
@@ -269,7 +269,7 @@ export function Toolbar() {
             : '編集内容はこのブラウザに自動保存されます'
         }
       >
-        {viewingShared ? '共有リンク表示中' : '自動保存済み ✓'}
+        {viewingShared ? '共有リンク表示中' : '自動保存済み'}
       </span>
 
       <span className="toast-region" role="status" aria-live="polite">

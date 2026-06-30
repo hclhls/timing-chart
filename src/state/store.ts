@@ -379,7 +379,7 @@ useEditor.subscribe((state) => {
         try {
           useEditor
             .getState()
-            .flash('自動保存に失敗しました（保存容量超過か無効）。「⚙ その他 → ファイルに保存」で保存してください')
+            .flash('自動保存に失敗しました（保存容量超過か無効）。「その他 → ファイルに保存」で保存してください')
         } catch {
           /* ignore */
         }

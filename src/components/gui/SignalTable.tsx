@@ -41,7 +41,7 @@ const PRIMARY: { v: Brush; label: string }[] = [
   { v: '0', label: 'Low（オフ）' },
   { v: 'p', label: 'クロック' },
   { v: '=', label: 'バス（値）' },
-  { v: 'extend', label: '→ 延長' },
+  { v: 'extend', label: '延長' },
 ]
 const DETAIL: { v: string; label: string }[] = [
   { v: 'x', label: '不定 X（未確定）' },
@@ -284,7 +284,8 @@ export function SignalTable() {
 
       {hasPeriodPhase && (
         <div className="grid-warning" role="status">
-          ⚠ 一部の信号に period／phase が設定されています。マス目の編集だとプレビューと位置がずれて見えることがあります。微調整は「コード（上級者）」タブで行ってください。
+          注意: 一部の信号に period／phase
+          が設定されています。マス目の編集だとプレビューと位置がずれて見えることがあります。微調整は「コード（上級者）」タブで行ってください。
         </div>
       )}
 
@@ -519,7 +520,7 @@ export function SignalTable() {
       </div>
       <p className="hint">
         {brush === null
-          ? '👆 マスをクリックで High（オン）/ Low（オフ）を切り替え。ドラッグで連続して塗れます。Alt+クリックで直前を延長。'
+          ? 'マスをクリックで High（オン）/ Low（オフ）を切り替え。ドラッグで連続して塗れます。Alt+クリックで直前を延長。'
           : brush === 'cycle'
             ? '順送りモード：クリックで状態が一巡（Shift+クリックで戻す）。'
             : `「${BRUSH_LABEL[brush] ?? brush}」を置きます：マスをクリック／ドラッグで連続適用。「High/Low切替」に戻すと通常編集。`}

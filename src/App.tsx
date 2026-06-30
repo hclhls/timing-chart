@@ -174,7 +174,7 @@ export default function App() {
           </button>
         ))}
         <button className="help-btn" onClick={() => setHelpOpen(true)} title="はじめに / ヘルプ">
-          ？ ヘルプ
+          ヘルプ
         </button>
       </nav>
 
