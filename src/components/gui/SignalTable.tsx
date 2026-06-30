@@ -14,6 +14,7 @@ import {
   removeRow,
   moveRow,
   makeClock,
+  duplicateSignal,
   addTick,
   removeTick,
 } from '../../state/actions'
@@ -119,6 +120,12 @@ export function SignalTable() {
   // Editable signal rows in display order — the index space for keyboard focus.
   const signalPaths = rows.filter((r) => r.kind === 'signal').map((r) => r.path)
   const sigIndexOf = (path: number[]) => signalPaths.findIndex((p) => pathEq(p, path))
+  // The selection, but only when it points at a signal (not a group/spacer) —
+  // gates the "複製" button.
+  const selectedSignalPath =
+    selectedPath && rows.some((r) => r.kind === 'signal' && pathEq(r.path, selectedPath))
+      ? selectedPath
+      : null
   // Effective focus: fall back to (0,0) when focusedCell is unset or stale
   // (out of range after a delete / tick-down / load), so the grid stays Tab-able.
   const effFocus =
@@ -293,6 +300,19 @@ export function SignalTable() {
         <button onClick={() => applyGuiModel(addSignal(model))}>＋信号</button>
         <button onClick={() => applyGuiModel(addGroup(model))}>＋グループ</button>
         <button onClick={() => applyGuiModel(addSpacer(model))}>＋空行</button>
+        <button
+          disabled={!selectedSignalPath}
+          onClick={() => {
+            if (!selectedSignalPath) return
+            applyGuiModel(duplicateSignal(model, selectedSignalPath))
+            const p = selectedSignalPath
+            setSelectedPath([...p.slice(0, -1), p[p.length - 1] + 1]) // select the new copy
+            flash('信号を複製しました（「戻す」で取り消せます）')
+          }}
+          title="選択中の信号を1つ下に複製します"
+        >
+          複製
+        </button>
         <span className="sep" />
         <button
           onClick={() => {

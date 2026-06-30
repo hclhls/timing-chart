@@ -238,6 +238,38 @@ function lanesAt(model: WaveJson, path: number[]): WaveLane[] {
   return cur
 }
 
+/** Insert `item` into the lane array at `parentPath`, at position `index`. */
+function insertAt(
+  lanes: WaveLane[],
+  parentPath: number[],
+  index: number,
+  item: WaveLane,
+): WaveLane[] {
+  if (parentPath.length === 0) {
+    const copy = lanes.slice()
+    copy.splice(index, 0, item)
+    return copy
+  }
+  const [head, ...rest] = parentPath
+  const copy = lanes.slice()
+  copy[head] = insertAt(copy[head] as WaveLane[], rest, index, item)
+  return copy
+}
+
+/** Duplicate the signal at `path`, inserting the copy directly below it with a
+ *  unique name. Group labels / nested groups aren't signals, so they're a no-op. */
+export function duplicateSignal(model: WaveJson, path: number[]): WaveJson {
+  if (path.length === 0) return model
+  const idx = path[path.length - 1]
+  const parentPath = path.slice(0, -1)
+  const orig = lanesAt(model, parentPath)[idx]
+  if (typeof orig !== 'object' || orig === null || Array.isArray(orig)) return model
+  const sig = orig as WaveSignal
+  const copy: WaveSignal = { ...sig, name: uniqueName(model, sig.name || '信号') }
+  if (Array.isArray(sig.data)) copy.data = sig.data.slice()
+  return { ...model, signal: insertAt(model.signal, parentPath, idx + 1, copy) }
+}
+
 /**
  * Move a row up/down by one WITHIN its parent array (top level or inside a
  * group). Index 0 of a group array is its label string, so signals inside a
