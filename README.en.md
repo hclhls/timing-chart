@@ -4,7 +4,7 @@
 
 A browser-based editor for drawing **timing charts and waveform diagrams** for FPGA and embedded development.
 It supports clocks, data and control signals, rising and falling edges, High / Low / X / Z states, multi-bit buses,
-setup/hold annotations, SVG/PNG/JSON export, and shareable links.
+setup/hold annotations, SVG/PNG/JSON/SPICE-PWL export, and shareable links.
 
 **Live: <https://kakuteki.github.io/timing-chart/>** (mobile friendly)
 
@@ -32,7 +32,7 @@ setup/hold annotations, SVG/PNG/JSON export, and shareable links.
 
 ## Export and Sharing
 
-- **SVG / PNG (1x/2x/4x with transparent background option) / JSON save** from the toolbar
+- **SVG / PNG (1x/2x/4x with transparent background option) / JSON / SPICE-PWL save** from the toolbar
 - **Copy image** copies PNG to the clipboard for pasting into slides or documents
 - **Load JSON** reads `.wavejson` and `.json` files
 - **Share links** compress the model into the URL hash (`#d=...`). Opening the link restores the diagram. Oversized or excessive shared data is rejected safely
