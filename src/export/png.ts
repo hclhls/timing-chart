@@ -1,4 +1,5 @@
 import { svgToString, svgPixelSize } from './svg'
+import { detectLanguage, translate } from '../i18n'
 
 /**
  * Rasterize a rendered <svg> to a PNG Blob at `scale`× resolution.
@@ -38,7 +39,7 @@ export async function svgToPngBlob(
 
   await new Promise<void>((resolve, reject) => {
     img.onload = () => resolve()
-    img.onerror = () => reject(new Error('SVG画像の読み込みに失敗しました'))
+    img.onerror = () => reject(new Error(translate(detectLanguage(), 'png.svgLoadFailed')))
     img.src = svgUrl
   })
 
@@ -46,7 +47,7 @@ export async function svgToPngBlob(
   canvas.width = Math.max(1, Math.round(width * eff))
   canvas.height = Math.max(1, Math.round(height * eff))
   const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('Canvas 2D コンテキストを取得できませんでした')
+  if (!ctx) throw new Error(translate(detectLanguage(), 'png.noCanvasContext'))
   // WaveDrom SVG is transparent — fill with the skin's background unless the
   // caller wants a transparent PNG (suits light-coloured slides/docs).
   if (!transparent) {
@@ -58,7 +59,7 @@ export async function svgToPngBlob(
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => {
       if (b) resolve(b)
-      else reject(new Error('PNG への変換に失敗しました'))
+      else reject(new Error(translate(detectLanguage(), 'png.conversionFailed')))
     }, 'image/png')
   })
   return { blob, effectiveScale: eff }

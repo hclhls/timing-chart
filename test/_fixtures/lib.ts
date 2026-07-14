@@ -5,3 +5,5 @@
 export * as codec from '../../src/model/wave-codec'
 export * as actions from '../../src/state/actions'
 export * as wj from '../../src/model/wavejson'
+export * as pwl from '../../src/model/pwl'
+export * as i18n from '../../src/i18n'

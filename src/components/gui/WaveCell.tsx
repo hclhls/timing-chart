@@ -1,4 +1,5 @@
 import { isBusState } from '../../model/wave-codec'
+import { useI18n, type I18nKey } from '../../i18n'
 
 interface Props {
   value: string
@@ -27,9 +28,10 @@ export function WaveCell({
   onKeyDown,
   labelPrefix = '',
 }: Props) {
+  const { t } = useI18n()
   const cls = ['wave-cell', ...stateClasses(value)]
   if (!isHead) cls.push('extension')
-  const label = labelPrefix + describe(value, busLabel)
+  const label = labelPrefix + describe(value, busLabel, t)
   return (
     <button
       className={cls.join(' ')}
@@ -121,27 +123,28 @@ function glyph(v: string, busLabel: string): string {
   }
 }
 
-function describe(v: string, busLabel = ''): string {
+function describe(v: string, busLabel = '', t: (key: I18nKey, params?: Record<string, string | number>) => string): string {
   if (isBusState(v)) {
     const id = v === '=' ? '' : ` ${v}`
-    return `バス値${busLabel ? ': ' + busLabel : id ? ' (' + v + ')' : ''}`
+    return t('wave.busValue', { suffix: busLabel ? ': ' + busLabel : id ? ' (' + v + ')' : '' })
   }
-  const map: Record<string, string> = {
+  const map: Record<string, I18nKey | string> = {
     '0': 'Low',
     '1': 'High',
-    h: 'High (マーカー)',
-    H: 'High (マーカー・矢印)',
-    l: 'Low (マーカー)',
-    L: 'Low (マーカー・矢印)',
-    d: '弱プルダウン (d)',
-    u: '弱プルアップ (u)',
-    p: 'クロック (正エッジ)',
-    P: 'クロック (正エッジ・矢印)',
-    n: 'クロック (負エッジ)',
-    N: 'クロック (負エッジ・矢印)',
-    x: '不定 (X)',
-    z: 'ハイインピーダンス (Z)',
-    '|': 'ギャップ',
+    h: 'wave.highMarker',
+    H: 'wave.highMarkerArrow',
+    l: 'wave.lowMarker',
+    L: 'wave.lowMarkerArrow',
+    d: 'wave.weakPulldown',
+    u: 'wave.weakPullup',
+    p: 'wave.clockPos',
+    P: 'wave.clockPosArrow',
+    n: 'wave.clockNeg',
+    N: 'wave.clockNegArrow',
+    x: 'wave.unknown',
+    z: 'wave.highImpedance',
+    '|': 'wave.gap',
   }
-  return map[v] ?? v
+  const text = map[v]
+  return text && text.startsWith('wave.') ? t(text as I18nKey) : text ?? v
 }

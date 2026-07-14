@@ -1,5 +1,6 @@
 import JSON5 from 'json5'
 import type { WaveJson } from './wavejson'
+import { detectLanguage, translate } from '../i18n'
 
 export interface ParseResult {
   ok: boolean
@@ -14,7 +15,7 @@ export interface ParseResult {
 export function parseModel(text: string): ParseResult {
   const trimmed = text.trim()
   if (trimmed.length === 0) {
-    return { ok: false, error: '入力が空です' }
+    return { ok: false, error: translate(detectLanguage(), 'parse.empty') }
   }
   let value: unknown
   try {
@@ -23,21 +24,21 @@ export function parseModel(text: string): ParseResult {
     return { ok: false, error: formatJson5Error(e) }
   }
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    return { ok: false, error: 'ルートはオブジェクト { … } である必要があります' }
+    return { ok: false, error: translate(detectLanguage(), 'parse.root') }
   }
   const obj = value as Record<string, unknown>
   if (!Array.isArray(obj.signal)) {
-    return { ok: false, error: '"signal" 配列が必要です' }
+    return { ok: false, error: translate(detectLanguage(), 'parse.signalRequired') }
   }
   // Every lane must be a signal object, a group label string, or a nested
   // group array. A stray null/number would crash the editor (Object.keys(null))
   // and, once autosaved, trap the app on reload — reject it up front.
   const badLane = !obj.signal.every((lane) => isValidLane(lane))
   if (badLane) {
-    return { ok: false, error: '"signal" の各要素はオブジェクト/配列/文字列である必要があります' }
+    return { ok: false, error: translate(detectLanguage(), 'parse.signalLaneInvalid') }
   }
   if (obj.edge !== undefined && !Array.isArray(obj.edge)) {
-    return { ok: false, error: '"edge" は配列である必要があります' }
+    return { ok: false, error: translate(detectLanguage(), 'parse.edgeArray') }
   }
   return { ok: true, model: value as WaveJson }
 }
@@ -70,8 +71,11 @@ function formatJson5Error(e: unknown): string {
     // JSON5 errors carry lineNumber/columnNumber properties
     const ln = (e as { lineNumber?: number }).lineNumber
     const col = (e as { columnNumber?: number }).columnNumber
-    const loc = ln ? ` (行 ${ln}${col ? `, 列 ${col}` : ''})` : ''
-    return `JSON 構文エラー${loc}: ${e.message}`
+    const lang = detectLanguage()
+    const loc = ln
+      ? ` (${translate(lang, 'parse.line', { line: ln })}${col ? `, ${translate(lang, 'parse.column', { column: col })}` : ''})`
+      : ''
+    return translate(lang, 'parse.jsonError', { location: loc, message: e.message })
   }
-  return 'JSON 構文エラー'
+  return translate(detectLanguage(), 'parse.jsonErrorSimple')
 }

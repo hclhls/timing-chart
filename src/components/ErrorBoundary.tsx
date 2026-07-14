@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { detectLanguage, translate } from '../i18n'
 
 interface Props {
   children: ReactNode
@@ -23,7 +24,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     // Surface for debugging; no external reporting (fully client-side).
-    console.error('描画クラッシュ:', error, info.componentStack)
+    console.error(translate(detectLanguage(), 'error.crashLog'), error, info.componentStack)
   }
 
   // Strip the share hash, then force a real reload. (Replacing to
@@ -56,21 +57,19 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.error) {
+      const language = detectLanguage()
+      const t = (key: Parameters<typeof translate>[1], params?: Parameters<typeof translate>[2]) =>
+        translate(language, key, params)
       return (
         <div className="crash-panel">
-          <h1>表示中に問題が発生しました</h1>
-          <p>
-            データが壊れている可能性があります。まずは
-            <b>共有リンクを外して再読み込み</b>
-            をお試しください（このブラウザに保存した作図は残ります）。直らない場合のみ、
-            保存内容も削除して初期化してください。
-          </p>
+          <h1>{t('error.title')}</h1>
+          <p>{t('error.body')}</p>
           <pre className="crash-detail">{this.state.error.message}</pre>
           <div className="crash-actions">
             <button className="primary" onClick={this.softReset}>
-              共有リンクを外して再読み込み（保存は残す）
+              {t('error.softReset')}
             </button>
-            <button onClick={this.hardReset}>保存内容も削除して初期化</button>
+            <button onClick={this.hardReset}>{t('error.hardReset')}</button>
           </div>
         </div>
       )

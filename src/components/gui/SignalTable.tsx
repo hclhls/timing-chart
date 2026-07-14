@@ -21,6 +21,7 @@ import {
 import { expandWave, CYCLE_STATES, isBusState, dataIndexAtTick } from '../../model/wave-codec'
 import { dataToArray } from '../../model/wavejson'
 import { WaveCell } from './WaveCell'
+import { useI18n, type I18nKey } from '../../i18n'
 
 function cycle(value: string, dir: 1 | -1): string {
   const states = CYCLE_STATES as readonly string[]
@@ -36,44 +37,41 @@ function cycle(value: string, dir: 1 | -1): string {
 // state. Primary picker is always visible with plain labels; rarer states fold
 // away under "もっと".
 type Brush = string | null
-const PRIMARY: { v: Brush; label: string }[] = [
-  { v: null, label: 'High/Low切替' },
-  { v: '1', label: 'High（オン）' },
-  { v: '0', label: 'Low（オフ）' },
-  { v: 'p', label: 'クロック' },
-  { v: '=', label: 'バス（値）' },
-  { v: 'extend', label: '延長' },
+const PRIMARY: { v: Brush; label: I18nKey }[] = [
+  { v: null, label: 'brush.toggle' },
+  { v: '1', label: 'brush.high' },
+  { v: '0', label: 'brush.low' },
+  { v: 'p', label: 'brush.clock' },
+  { v: '=', label: 'brush.bus' },
+  { v: 'extend', label: 'brush.extend' },
 ]
-const DETAIL: { v: string; label: string }[] = [
-  { v: 'x', label: '不定 X（未確定）' },
-  { v: 'z', label: 'Z（切断）' },
-  { v: 'cycle', label: '順送り（クリックで次へ）' },
-  { v: 'P', label: 'クロック（矢印つき）' },
-  { v: 'n', label: 'クロック↓' },
-  { v: 'N', label: 'クロック↓（矢印）' },
-  { v: '2', label: 'バス2' },
-  { v: '3', label: 'バス3' },
-  { v: '4', label: 'バス4' },
-  { v: '5', label: 'バス5' },
-  { v: '6', label: 'バス6' },
-  { v: '7', label: 'バス7' },
-  { v: '8', label: 'バス8' },
-  { v: '9', label: 'バス9' },
-  { v: '|', label: 'ギャップ' },
+const DETAIL: { v: string; label: I18nKey }[] = [
+  { v: 'x', label: 'brush.x' },
+  { v: 'z', label: 'brush.z' },
+  { v: 'cycle', label: 'brush.cycle' },
+  { v: 'P', label: 'brush.clockArrow' },
+  { v: 'n', label: 'brush.clockDown' },
+  { v: 'N', label: 'brush.clockDownArrow' },
+  { v: '2', label: 'brush.bus2' },
+  { v: '3', label: 'brush.bus3' },
+  { v: '4', label: 'brush.bus4' },
+  { v: '5', label: 'brush.bus5' },
+  { v: '6', label: 'brush.bus6' },
+  { v: '7', label: 'brush.bus7' },
+  { v: '8', label: 'brush.bus8' },
+  { v: '9', label: 'brush.bus9' },
+  { v: '|', label: 'brush.gap' },
 ]
 // Persistent legend (the same meanings as the welcome modal, always available).
-const LEGEND_STRIP: { sample: string; cls: string; text: string }[] = [
-  { sample: '1', cls: 'state-high', text: 'High（オン）' },
-  { sample: '0', cls: 'state-low', text: 'Low（オフ）' },
-  { sample: '⊓⊔', cls: 'state-clkp', text: 'クロック' },
-  { sample: 'A', cls: 'state-bus state-bus-3', text: 'バス（値）' },
-  { sample: '✕', cls: 'state-x', text: '不定（X）' },
-  { sample: 'Z', cls: 'state-z', text: 'Z（切断）' },
-  { sample: '┊', cls: 'state-gap', text: 'ギャップ' },
+const LEGEND_STRIP: { sample: string; cls: string; text: I18nKey }[] = [
+  { sample: '1', cls: 'state-high', text: 'legend.highName' },
+  { sample: '0', cls: 'state-low', text: 'legend.lowName' },
+  { sample: '⊓⊔', cls: 'state-clkp', text: 'legend.clockName' },
+  { sample: 'A', cls: 'state-bus state-bus-3', text: 'legend.busName' },
+  { sample: '✕', cls: 'state-x', text: 'legend.xName' },
+  { sample: 'Z', cls: 'state-z', text: 'legend.zName' },
+  { sample: '┊', cls: 'state-gap', text: 'legend.gapName' },
 ]
-const BRUSH_LABEL: Record<string, string> = Object.fromEntries(
-  [...PRIMARY, ...DETAIL].filter((b) => b.v !== null).map((b) => [b.v as string, b.label]),
-)
 
 function brushClasses(v: Brush): string {
   if (v === '=') return 'palette-btn state-bus state-bus-eq'
@@ -82,6 +80,8 @@ function brushClasses(v: Brush): string {
 }
 
 export function SignalTable() {
+  const { t: tr } = useI18n()
+  const brushLabel = (value: string) => tr(([...PRIMARY, ...DETAIL].find((b) => b.v === value)?.label ?? 'brush.toggle') as I18nKey)
   const model = useEditor((s) => s.model)
   const applyGuiModel = useEditor((s) => s.applyGuiModel)
   const selectedPath = useEditor((s) => s.selectedPath)
@@ -165,7 +165,7 @@ export function SignalTable() {
       // Default: simple High/Low toggle. Protect data-bearing bus cells from a
       // stray click (their label would be lost) — change those via the picker.
       if (isBusState(cur)) {
-        flash('ここはバス区間です。下の「バス値」で値を編集できます')
+        flash(tr('signal.busProtected'))
         return null
       }
       const v = cur === '1' ? '0' : '1'
@@ -185,7 +185,7 @@ export function SignalTable() {
     // Protect a data-bearing bus cell from a stray High/Low brush click (its
     // label would be silently dropped) — same rule the toggle and drag use.
     if ((brush === '0' || brush === '1') && isBusState(cur)) {
-      flash('ここはバス区間です。下の「バス値」で値を編集できます')
+      flash(tr('signal.busProtected'))
       return null
     }
     applyGuiModel(setCellState(model, path, tick, brush), coalesceKey)
@@ -290,19 +290,18 @@ export function SignalTable() {
 
   return (
     <section className={paintMode ? 'signal-table paint-mode' : 'signal-table'}>
-      <div className="pane-title">信号エディタ</div>
+      <div className="pane-title">{tr('signal.title')}</div>
 
       {hasPeriodPhase && (
         <div className="grid-warning" role="status">
-          注意: 一部の信号に period／phase
-          が設定されています。マス目の編集だとプレビューと位置がずれて見えることがあります。微調整は「コード（上級者）」タブで行ってください。
+          {tr('signal.periodWarning')}
         </div>
       )}
 
       <div className="table-toolbar">
-        <button onClick={() => applyGuiModel(addSignal(model))}>＋信号</button>
-        <button onClick={() => applyGuiModel(addGroup(model))}>＋グループ</button>
-        <button onClick={() => applyGuiModel(addSpacer(model))}>＋空行</button>
+        <button onClick={() => applyGuiModel(addSignal(model))}>{tr('signal.addSignal')}</button>
+        <button onClick={() => applyGuiModel(addGroup(model))}>{tr('signal.addGroup')}</button>
+        <button onClick={() => applyGuiModel(addSpacer(model))}>{tr('signal.addSpacer')}</button>
         <button
           disabled={!selectedSignalPath}
           onClick={() => {
@@ -310,33 +309,33 @@ export function SignalTable() {
             applyGuiModel(duplicateSignal(model, selectedSignalPath))
             const p = selectedSignalPath
             setSelectedPath([...p.slice(0, -1), p[p.length - 1] + 1]) // select the new copy
-            flash('信号を複製しました（「戻す」で取り消せます）')
+            flash(tr('signal.duplicated'))
           }}
-          title="選択中の信号を1つ下に複製します"
+          title={tr('signal.duplicateTitle')}
         >
-          複製
+          {tr('signal.duplicate')}
         </button>
         <span className="sep" />
         <button
           onClick={() => {
             if (ticks <= 1) return
             applyGuiModel(removeTick(model))
-            flash('コマを1つ減らしました（「戻す」で復元できます）')
+            flash(tr('signal.removedTime'))
           }}
-          title="時間の長さ（横のコマ）を1つ減らす"
+          title={tr('signal.removeTimeTitle')}
         >
-          − 時間
+          {tr('signal.removeTime')}
         </button>
-        <span className="tick-count" title="時間の長さ＝横のコマ数">
-          長さ {ticks}
+        <span className="tick-count" title={tr('signal.lengthTitle')}>
+          {tr('signal.length', { ticks })}
         </span>
-        <button onClick={() => applyGuiModel(addTick(model))} title="時間の長さ（横のコマ）を1つ増やす">
-          ＋ 時間
+        <button onClick={() => applyGuiModel(addTick(model))} title={tr('signal.addTimeTitle')}>
+          {tr('signal.addTime')}
         </button>
       </div>
 
-      <div className="state-picker" role="group" aria-label="置く状態を選ぶ">
-        <span className="state-picker-label">状態:</span>
+      <div className="state-picker" role="group" aria-label={tr('signal.stateAria')}>
+        <span className="state-picker-label">{tr('signal.stateLabel')}</span>
         {PRIMARY.map(({ v, label }) => (
           <button
             key={String(v)}
@@ -346,44 +345,44 @@ export function SignalTable() {
             onClick={() => setBrush(v === null || brush === v ? null : v)}
             aria-pressed={brush === v}
           >
-            {label}
+            {tr(label)}
           </button>
         ))}
         <details className="more-states">
-          <summary>もっと</summary>
-          <div className="brush-palette" role="group" aria-label="その他の状態">
+          <summary>{tr('signal.more')}</summary>
+          <div className="brush-palette" role="group" aria-label={tr('signal.moreAria')}>
             {DETAIL.map(({ v, label }) => (
               <button
                 key={v}
                 className={brush === v ? `${brushClasses(v)} active` : brushClasses(v)}
                 onClick={() => setBrush(brush === v ? null : v)}
-                title={label}
-                aria-label={label}
+                title={tr(label)}
+                aria-label={tr(label)}
                 aria-pressed={brush === v}
               >
-                {label}
+                {tr(label)}
               </button>
             ))}
           </div>
         </details>
         <label
           className="paint-mode-toggle"
-          title="オンにすると指のスワイプで連続して塗れます（オフは画面スクロール）"
+          title={tr('signal.paintModeTitle')}
         >
           <input
             type="checkbox"
             checked={paintMode}
             onChange={(e) => setPaintMode(e.target.checked)}
           />
-          スワイプで塗る
+          {tr('signal.paintMode')}
         </label>
       </div>
 
       {signalPaths.length === 0 && (
         <div className="empty-state">
-          <p>信号がまだありません。</p>
-          <button onClick={() => applyGuiModel(addSignal(model))}>＋ 最初の信号を追加</button>
-          <span className="empty-hint">追加したら、マスをクリックして High / Low を描けます。</span>
+          <p>{tr('signal.empty')}</p>
+          <button onClick={() => applyGuiModel(addSignal(model))}>{tr('signal.addFirst')}</button>
+          <span className="empty-hint">{tr('signal.emptyHint')}</span>
         </div>
       )}
 
@@ -391,7 +390,7 @@ export function SignalTable() {
         <table className="grid">
           <thead>
             <tr>
-              <th className="name-col">信号</th>
+              <th className="name-col">{tr('signal.nameHead')}</th>
               <th className="ctrl-col" />
               {tickArray.map((t) => (
                 <th key={t} className="tick-head">
@@ -410,7 +409,7 @@ export function SignalTable() {
                       <span className="group-caret">▸</span>
                       <input
                         className="group-input"
-                        aria-label="グループ名"
+                        aria-label={tr('signal.groupNameAria')}
                         value={row.label ?? ''}
                         onChange={(e) =>
                           applyGuiModel(
@@ -428,8 +427,8 @@ export function SignalTable() {
                               applyGuiModel(next)
                             }
                           }}
-                          title="グループを上へ"
-                          aria-label="グループを上へ移動"
+                          title={tr('signal.groupUpTitle')}
+                          aria-label={tr('signal.groupUpAria')}
                         >
                           ▲
                         </button>
@@ -441,25 +440,25 @@ export function SignalTable() {
                               applyGuiModel(next)
                             }
                           }}
-                          title="グループを下へ"
-                          aria-label="グループを下へ移動"
+                          title={tr('signal.groupDownTitle')}
+                          aria-label={tr('signal.groupDownAria')}
                         >
                           ▼
                         </button>
                         <button
                           onClick={() => applyGuiModel(addSignalToGroup(model, row.path))}
-                          title="このグループに信号を追加"
-                          aria-label="グループに信号を追加"
+                          title={tr('signal.groupAddTitle')}
+                          aria-label={tr('signal.groupAddAria')}
                         >
-                          ＋信号
+                          {tr('signal.addSignal')}
                         </button>
                         <button
                           onClick={() => {
                             setSelectedPath(null)
                             applyGuiModel(removeGroup(model, row.path))
                           }}
-                          title="グループを削除"
-                          aria-label="グループを削除"
+                          title={tr('signal.groupDeleteTitle')}
+                          aria-label={tr('signal.groupDeleteAria')}
                         >
                           ×
                         </button>
@@ -472,7 +471,7 @@ export function SignalTable() {
                 return (
                   <tr key={key} className="spacer-row">
                     <td className="name-col">
-                      <span className="spacer-label">— 空行 —</span>
+                      <span className="spacer-label">{tr('signal.blankRow')}</span>
                     </td>
                     <td className="ctrl-col">
                       <RowControls path={row.path} isSignal={false} />
@@ -495,8 +494,8 @@ export function SignalTable() {
                   <td className="name-col" style={{ paddingLeft: 4 + row.depth * 12 }}>
                     <input
                       className="name-input"
-                      aria-label="信号名"
-                      placeholder="信号名"
+                      aria-label={tr('signal.nameAria')}
+                      placeholder={tr('signal.namePlaceholder')}
                       value={sig.name ?? ''}
                       onChange={(e) =>
                         applyGuiModel(
@@ -524,7 +523,7 @@ export function SignalTable() {
                           value={cell.value}
                           isHead={cell.head}
                           busLabel={label}
-                          labelPrefix={`${sig.name || '信号'} tick${t}: `}
+                          labelPrefix={tr('signal.cellLabel', { name: sig.name || tr('app.unnamed'), tick: t })}
                           tabIndex={isFocused ? 0 : -1}
                           cellId={`${sigIndex}-${t}`}
                           onKeyDown={(e) => onCellKeyDown(sigIndex, t, e)}
@@ -556,23 +555,23 @@ export function SignalTable() {
       </div>
       <p className="hint">
         {brush === null
-          ? 'マスをクリックで High（オン）/ Low（オフ）を切り替え。ドラッグで連続して塗れます。Alt+クリックで直前を延長。'
+          ? tr('signal.hintDefault')
           : brush === 'cycle'
-            ? '順送りモード：クリックで状態が一巡（Shift+クリックで戻す）。'
-            : `「${BRUSH_LABEL[brush] ?? brush}」を置きます：マスをクリック／ドラッグで連続適用。「High/Low切替」に戻すと通常編集。`}
+            ? tr('signal.hintCycle')
+            : tr('signal.hintPaint', { brush: brushLabel(brush) })}
         <br />
         <span className="hint-sub">
-          キーボード: 矢印=移動 / Enter・Space=適用 / Alt+Enter=延長
+          {tr('signal.hintKeyboard')}
         </span>
       </p>
 
       <details className="legend-strip">
-        <summary>記号の見かた</summary>
+        <summary>{tr('signal.legendSummary')}</summary>
         <ul className="legend-row">
           {LEGEND_STRIP.map((l) => (
             <li key={l.text}>
               <span className={`legend-chip wave-cell ${l.cls}`}>{l.sample}</span>
-              {l.text}
+              {tr(l.text)}
             </li>
           ))}
         </ul>
@@ -582,6 +581,7 @@ export function SignalTable() {
 }
 
 function RowControls({ path, isSignal = true }: { path: number[]; isSignal?: boolean }) {
+  const { t: tr } = useI18n()
   const model = useEditor((s) => s.model)
   const applyGuiModel = useEditor((s) => s.applyGuiModel)
   const setSelectedPath = useEditor((s) => s.setSelectedPath)
@@ -606,9 +606,9 @@ function RowControls({ path, isSignal = true }: { path: number[]; isSignal?: boo
       <button
         className="row-actions-toggle"
         onClick={() => setOpen((o) => !o)}
-        aria-label="この行の操作"
+        aria-label={tr('signal.rowActions')}
         aria-expanded={open}
-        title="操作（移動・クロック化・削除）"
+        title={tr('signal.rowActionsTitle')}
       >
         ⋯
       </button>
@@ -616,16 +616,16 @@ function RowControls({ path, isSignal = true }: { path: number[]; isSignal?: boo
         <button
           onClick={() => restructure(moveRow(model, path, -1))}
           disabled={!canUp}
-          title="上へ"
-          aria-label="信号を上へ移動"
+          title={tr('signal.moveUpTitle')}
+          aria-label={tr('signal.moveUpAria')}
         >
           ▲
         </button>
         <button
           onClick={() => restructure(moveRow(model, path, 1))}
           disabled={!canDown}
-          title="下へ"
-          aria-label="信号を下へ移動"
+          title={tr('signal.moveDownTitle')}
+          aria-label={tr('signal.moveDownAria')}
         >
           ▼
         </button>
@@ -633,10 +633,10 @@ function RowControls({ path, isSignal = true }: { path: number[]; isSignal?: boo
           <button
             onClick={() => {
               applyGuiModel(makeClock(model, path))
-              flash('クロック（周期信号）にしました（「戻す」で元に戻せます）')
+              flash(tr('signal.madeClock'))
             }}
-            title="この信号をクロック（周期信号）にする"
-            aria-label="この信号をクロックにする"
+            title={tr('signal.makeClockTitle')}
+            aria-label={tr('signal.makeClockAria')}
           >
             ⎍
           </button>
@@ -644,10 +644,10 @@ function RowControls({ path, isSignal = true }: { path: number[]; isSignal?: boo
         <button
           onClick={() => {
             restructure(removeRow(model, path))
-            flash('削除しました（「戻す」で元に戻せます）')
+            flash(tr('signal.deleted'))
           }}
-          title="削除"
-          aria-label="この信号を削除"
+          title={tr('signal.deleteTitle')}
+          aria-label={tr('signal.deleteAria')}
         >
           ×
         </button>

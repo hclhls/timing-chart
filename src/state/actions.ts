@@ -2,6 +2,7 @@
 // (structural sharing along the touched path) so React/Zustand sees a change.
 
 import type { WaveJson, WaveLane, WaveSignal } from '../model/wavejson'
+import { detectLanguage, translate } from '../i18n'
 import { dataToArray } from '../model/wavejson'
 import {
   setTick,
@@ -212,7 +213,7 @@ export function makeClock(model: WaveJson, path: number[]): WaveJson {
 }
 
 /** Append a new signal at the top level, with a unique name. */
-export function addSignal(model: WaveJson, base = '信号'): WaveJson {
+export function addSignal(model: WaveJson, base = translate(detectLanguage(), 'default.signalName')): WaveJson {
   // Match existing signals' length, but give the FIRST signal a comfortable 8
   // columns so a blank document has room to draw (not a single cell).
   const hasSignals = flattenSignals(model).some((r) => r.kind === 'signal')
@@ -265,7 +266,7 @@ export function duplicateSignal(model: WaveJson, path: number[]): WaveJson {
   const orig = lanesAt(model, parentPath)[idx]
   if (typeof orig !== 'object' || orig === null || Array.isArray(orig)) return model
   const sig = orig as WaveSignal
-  const copy: WaveSignal = { ...sig, name: uniqueName(model, sig.name || '信号') }
+  const copy: WaveSignal = { ...sig, name: uniqueName(model, sig.name || translate(detectLanguage(), 'default.signalName')) }
   if (Array.isArray(sig.data)) copy.data = sig.data.slice()
   return { ...model, signal: insertAt(model.signal, parentPath, idx + 1, copy) }
 }
@@ -307,9 +308,9 @@ export function addGroup(model: WaveJson): WaveJson {
   const ticks = currentMaxTicks(model)
   const wave = '0'.padEnd(ticks, '.')
   const used = existingGroupLabels(model)
-  let label = 'グループ'
-  for (let n = 2; used.has(label); n++) label = `グループ${n}`
-  const group: WaveLane = [label, { name: uniqueName(model, '信号'), wave }]
+  let label = translate(detectLanguage(), 'default.groupName')
+  for (let n = 2; used.has(label); n++) label = `${translate(detectLanguage(), 'default.groupName')}${n}`
+  const group: WaveLane = [label, { name: uniqueName(model, translate(detectLanguage(), 'default.signalName')), wave }]
   return { ...model, signal: [...model.signal, group] }
 }
 
@@ -329,7 +330,7 @@ export function addSignalToGroup(model: WaveJson, labelPath: number[]): WaveJson
   const groupPath = labelPath.slice(0, -1)
   const ticks = currentMaxTicks(model)
   const wave = '0'.padEnd(ticks, '.')
-  const sig: WaveLane = { name: uniqueName(model, '信号'), wave }
+  const sig: WaveLane = { name: uniqueName(model, translate(detectLanguage(), 'default.signalName')), wave }
   return {
     ...model,
     signal: updateLane(model.signal, groupPath, (g) => [...(g as WaveLane[]), sig]),

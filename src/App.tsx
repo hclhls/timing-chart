@@ -13,20 +13,21 @@ import { EdgeEditor } from './components/annotations/EdgeEditor'
 import { WaveJsonEditor } from './components/text/WaveJsonEditor'
 import { PreviewPane } from './components/preview/PreviewPane'
 import { HelpModal } from './components/HelpModal'
+import { useI18n } from './i18n'
 
 const HELP_SEEN_KEY = 'timing-chart:seen-help'
 // A truly blank document → the empty-state guide walks the user from zero.
 const BLANK = { signal: [], config: { hscale: 1 } }
 
 type Tab = 'gui' | 'text' | 'preview'
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'gui', label: '編集' },
-  { id: 'text', label: 'コード（上級者）' },
-  { id: 'preview', label: 'プレビュー' },
-]
-
 export default function App() {
+  const { t } = useI18n()
   const [tab, setTab] = useState<Tab>('gui')
+  const tabs: { id: Tab; label: string }[] = [
+    { id: 'gui', label: t('app.tabGui') },
+    { id: 'text', label: t('app.tabText') },
+    { id: 'preview', label: t('app.tabPreview') },
+  ]
   const selectedPath = useEditor((s) => s.selectedPath)
   const model = useEditor((s) => s.model)
   const loadModel = useEditor((s) => s.loadModel)
@@ -60,11 +61,11 @@ export default function App() {
       const st = useEditor.getState()
       if (serializeModel(st.model) === serializeModel(share.model)) return // no change
       st.loadSharedFromHash(share.model)
-      st.flash('共有リンクを読み込みました（編集は「戻す」で元に戻せます）')
+      st.flash(t('app.toastShareLoaded'))
     }
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
-  }, [])
+  }, [t])
 
   // While the help dialog is open, make the rest of the app inert so screen
   // readers and Tab/clicks can't reach the background behind the modal.
@@ -136,7 +137,7 @@ export default function App() {
   }, [])
 
   const onTabKey = (e: React.KeyboardEvent) => {
-    const order = TABS.map((t) => t.id)
+    const order = tabs.map((t) => t.id)
     const i = order.indexOf(tab)
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
       e.preventDefault()
@@ -175,8 +176,8 @@ export default function App() {
       )}
       <Toolbar />
 
-      <nav className="tabbar" role="tablist" aria-label="表示切替">
-        {TABS.map(({ id, label }) => (
+      <nav className="tabbar" role="tablist" aria-label={t('app.tabAria')}>
+        {tabs.map(({ id, label }) => (
           <button
             key={id}
             role="tab"
@@ -191,8 +192,8 @@ export default function App() {
             {label}
           </button>
         ))}
-        <button className="help-btn" onClick={() => setHelpOpen(true)} title="はじめに / ヘルプ">
-          ヘルプ
+        <button className="help-btn" onClick={() => setHelpOpen(true)} title={t('app.helpTitle')}>
+          {t('app.help')}
         </button>
       </nav>
 
@@ -201,21 +202,21 @@ export default function App() {
           <SignalTable />
           <details className="panel" open={busOpen} onToggle={(e) => setBusOpen(e.currentTarget.open)}>
             <summary>
-              バス値{busCount > 0 && selSig ? `: ${selSig.name || '(無名)'} #${busCount}` : ''}
+              {t('app.busSummary')}{busCount > 0 && selSig ? `: ${selSig.name || t('app.unnamed')} #${busCount}` : ''}
             </summary>
             <BusDataPanel />
           </details>
           <details className="panel">
-            <summary>タイトル・時間軸（図の見出し）</summary>
+            <summary>{t('app.labelsSummary')}</summary>
             <DiagramLabelsPanel />
           </details>
           <details className="panel">
-            <summary>周期・位相（分周クロック）（上級）</summary>
+            <summary>{t('app.timingSummary')}</summary>
             <SignalTimingPanel />
           </details>
           <details className="panel">
             <summary>
-              注釈（上級）: 信号間の矢印{edgeCount > 0 ? ` (${edgeCount})` : ''}
+              {t('app.edgesSummary')}{edgeCount > 0 ? ` (${edgeCount})` : ''}
             </summary>
             <EdgeEditor />
           </details>

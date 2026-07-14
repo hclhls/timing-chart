@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useEditor } from '../../state/store'
+import { useI18n } from '../../i18n'
 
 const DEBOUNCE_MS = 300
 
@@ -9,6 +10,7 @@ const DEBOUNCE_MS = 300
  * shows a non-blocking error banner.
  */
 export function WaveJsonEditor() {
+  const { t } = useI18n()
   const textBuffer = useEditor((s) => s.textBuffer)
   const editSource = useEditor((s) => s.editSource)
   const parseError = useEditor((s) => s.parseError)
@@ -39,7 +41,7 @@ export function WaveJsonEditor() {
         </div>
       ) : (
         <div className="banner banner-ok" role="status" aria-live="polite">
-          構文OK
+          {t('text.syntaxOk')}
         </div>
       )}
       <textarea

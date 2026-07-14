@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useEditor } from '../../state/store'
 import { flattenSignals, nextNodeLetter, usedNodeLetters } from '../../state/selectors'
 import { getEdges, setEdges, setSignalNode } from '../../state/actions'
+import { useI18n } from '../../i18n'
 
 const ARROWS = ['~>', '-~>', '~->', '->', '-|>', '<->', '-', '~', '<-|->'] as const
 
@@ -20,6 +21,7 @@ function placeNode(node: string | undefined, tick: number, letter: string): stri
 
 /** Setup/hold (edge) annotation editor: place markers and connect them. */
 export function EdgeEditor() {
+  const { t } = useI18n()
   const model = useEditor((s) => s.model)
   const applyGuiModel = useEditor((s) => s.applyGuiModel)
   const selectedPath = useEditor((s) => s.selectedPath)
@@ -61,12 +63,12 @@ export function EdgeEditor() {
 
   return (
     <div className="edge-editor">
-      <div className="bus-panel-title">注釈 (セットアップ/ホールド)</div>
+      <div className="bus-panel-title">{t('edge.title')}</div>
 
       <div className="edge-section">
-        <div className="edge-label">① マーカー配置（選択中の信号）</div>
+        <div className="edge-label">{t('edge.placeMarker')}</div>
         <div className="edge-row">
-          tick
+          {t('edge.tick')}
           <input
             type="number"
             min={0}
@@ -75,17 +77,17 @@ export function EdgeEditor() {
             style={{ width: 56 }}
           />
           <button onClick={addMarker} disabled={!selectedPath}>
-            マーカー追加
+            {t('edge.addMarker')}
           </button>
         </div>
         {!selectedPath && (
           <div className="muted edge-hint">
-            ↑ まず左の表で信号の行（マス）をクリックして選ぶと、その位置にマーカーを置けます
+            {t('edge.noSelection')}
           </div>
         )}
         <div className="edge-markers">
           {letters.length === 0 ? (
-            <span className="muted">マーカー未配置</span>
+            <span className="muted">{t('edge.noMarkers')}</span>
           ) : (
             letters.map((l) => (
               <span key={l} className="marker-chip">
@@ -97,7 +99,7 @@ export function EdgeEditor() {
       </div>
 
       <div className="edge-section">
-        <div className="edge-label">② マーカー間を接続</div>
+        <div className="edge-label">{t('edge.connect')}</div>
         <div className="edge-row">
           <select value={from} onChange={(e) => setFrom(e.target.value)}>
             <option value="">from</option>
@@ -124,12 +126,12 @@ export function EdgeEditor() {
           </select>
           <input
             value={label}
-            placeholder="ラベル"
+            placeholder={t('edge.labelPlaceholder')}
             onChange={(e) => setLabel(e.target.value)}
             style={{ width: 80 }}
           />
           <button onClick={addEdge} disabled={!from || !to}>
-            追加
+            {t('edge.add')}
           </button>
         </div>
         <div className="quick-row">
@@ -139,15 +141,15 @@ export function EdgeEditor() {
       </div>
 
       <div className="edge-section">
-        <div className="edge-label">既存の注釈</div>
+        <div className="edge-label">{t('edge.existing')}</div>
         {edges.length === 0 ? (
-          <span className="muted">なし</span>
+          <span className="muted">{t('edge.none')}</span>
         ) : (
           <ul className="edge-list">
             {edges.map((e, i) => (
               <li key={i}>
                 <code>{e}</code>
-                <button onClick={() => removeEdge(i)} title="注釈を削除" aria-label="注釈を削除">
+                <button onClick={() => removeEdge(i)} title={t('edge.deleteTitle')} aria-label={t('edge.deleteAria')}>
                   ×
                 </button>
               </li>

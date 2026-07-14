@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { EXAMPLES } from '../examples'
 import type { WaveJson } from '../model/wavejson'
+import { useI18n } from '../i18n'
 
 interface Props {
   onClose: () => void
@@ -10,17 +11,18 @@ interface Props {
   onLoadExample: (model: WaveJson) => void
 }
 
-const LEGEND: { sample: string; cls: string; name: string; desc: string }[] = [
-  { sample: '1', cls: 'state-high', name: 'High（オン）', desc: '信号がON（電圧が高い）' },
-  { sample: '0', cls: 'state-low', name: 'Low（オフ）', desc: '信号がOFF（電圧が低い）' },
-  { sample: '⊓⊔', cls: 'state-clkp', name: 'クロック', desc: '一定の周期でカチカチ繰り返すON/OFF信号' },
-  { sample: 'A0', cls: 'state-bus state-bus-3', name: 'バス（値）', desc: '複数bitをまとめた値。色は区間の区切り' },
-  { sample: '✕', cls: 'state-x', name: '不定（X）', desc: '値が決まっていない状態' },
-  { sample: 'Z', cls: 'state-z', name: 'Z', desc: 'どこにも繋がっていない（ハイインピーダンス）' },
-  { sample: '┊', cls: 'state-gap', name: 'ギャップ', desc: '波形を省略する区切り' },
+const LEGEND: { sample: string; cls: string; name: Parameters<ReturnType<typeof useI18n>['t']>[0]; desc: Parameters<ReturnType<typeof useI18n>['t']>[0] }[] = [
+  { sample: '1', cls: 'state-high', name: 'legend.highName', desc: 'legend.highDesc' },
+  { sample: '0', cls: 'state-low', name: 'legend.lowName', desc: 'legend.lowDesc' },
+  { sample: '⊓⊔', cls: 'state-clkp', name: 'legend.clockName', desc: 'legend.clockDesc' },
+  { sample: 'A0', cls: 'state-bus state-bus-3', name: 'legend.busName', desc: 'legend.busDesc' },
+  { sample: '✕', cls: 'state-x', name: 'legend.xName', desc: 'legend.xDesc' },
+  { sample: 'Z', cls: 'state-z', name: 'legend.zName', desc: 'legend.zDesc' },
+  { sample: '┊', cls: 'state-gap', name: 'legend.gapName', desc: 'legend.gapDesc' },
 ]
 
 export function HelpModal({ onClose, onStartBlank, onLoadExample }: Props) {
+  const { t } = useI18n()
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
 
@@ -66,59 +68,47 @@ export function HelpModal({ onClose, onStartBlank, onLoadExample }: Props) {
         aria-labelledby="help-modal-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <button ref={closeRef} className="modal-close" onClick={onClose} aria-label="閉じる">
+        <button ref={closeRef} className="modal-close" onClick={onClose} aria-label={t('help.close')}>
           ×
         </button>
 
-        <h1 id="help-modal-title">タイミングチャート作図ツール</h1>
-        <p className="help-lead">
-          デジタル回路などの信号が、時間とともに <b>ON / OFF</b>{' '}
-          する様子を波形で描く図（タイミングチャート）を、かんたんに作れます。
-        </p>
+        <h1 id="help-modal-title">{t('help.title')}</h1>
+        <p className="help-lead">{t('help.lead')}</p>
 
-        <h2>使い方（3ステップ）</h2>
+        <h2>{t('help.stepsTitle')}</h2>
         <ol className="help-steps">
-          <li>
-            <b>「＋信号」</b>で行を追加（または下にあるサンプルをそのまま編集）
-          </li>
-          <li>
-            表の<b>マスをクリック</b>して <b>High / Low</b> を切り替え（
-            <b>ドラッグ</b>で連続して塗れます）。上の「状態」から<b>クロック・バス</b>なども選べます
-          </li>
-          <li>
-            右の<b>プレビュー</b>に図がその場で出ます。<b>「PNG」</b>で画像として保存
-          </li>
+          <li>{t('help.step1')}</li>
+          <li>{t('help.step2')}</li>
+          <li>{t('help.step3')}</li>
         </ol>
 
-        <h2>記号の見かた</h2>
+        <h2>{t('help.legendTitle')}</h2>
         <ul className="legend">
           {LEGEND.map((l) => (
             <li key={l.name}>
               <span className={`legend-chip wave-cell ${l.cls}`}>{l.sample}</span>
               <span className="legend-text">
-                <b>{l.name}</b> — {l.desc}
+                <b>{t(l.name)}</b> - {t(l.desc)}
               </span>
             </li>
           ))}
         </ul>
-        <h2>例から始める</h2>
+        <h2>{t('help.examplesTitle')}</h2>
         <div className="example-grid">
           {EXAMPLES.map((ex) => (
             <button key={ex.id} className="example-card" onClick={() => onLoadExample(ex.model)}>
-              {ex.name}
+              {t(`example.${ex.id}` as Parameters<typeof t>[0])}
             </button>
           ))}
         </div>
 
-        <p className="help-note">
-          間違えても <b>「戻す」(Ctrl+Z)</b> でいつでも元に戻せます。編集は自動保存されます。
-        </p>
+        <p className="help-note">{t('help.note')}</p>
 
         <div className="help-actions">
           <button className="primary" onClick={onClose}>
-            サンプルを見ながら始める
+            {t('help.startExample')}
           </button>
-          <button onClick={onStartBlank}>白紙から始める</button>
+          <button onClick={onStartBlank}>{t('help.startBlank')}</button>
         </div>
       </div>
     </div>

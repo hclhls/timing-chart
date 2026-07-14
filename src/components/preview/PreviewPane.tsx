@@ -3,8 +3,10 @@ import { useEditor } from '../../state/store'
 import { WaveDromRenderer } from '../../render/WaveDromRenderer'
 import { setLatestSvg } from '../../export/svgRegistry'
 import { SKIN_BG } from '../../render/skins'
+import { useI18n } from '../../i18n'
 
 export function PreviewPane() {
+  const { t } = useI18n()
   const model = useEditor((s) => s.lastValidModel)
   const skin = useEditor((s) => s.skinName)
   const [renderError, setRenderError] = useState<string | null>(null)
@@ -19,9 +21,9 @@ export function PreviewPane() {
 
   return (
     <section className="preview-pane">
-      <div className="pane-title">プレビュー</div>
+      <div className="pane-title">{t('preview.title')}</div>
       {renderError && (
-        <div className="banner banner-error">描画エラー: {renderError}</div>
+        <div className="banner banner-error">{t('preview.error', { error: renderError })}</div>
       )}
       <div className="preview-scroll" style={{ background: SKIN_BG[skin] }}>
         <WaveDromRenderer
@@ -31,7 +33,7 @@ export function PreviewPane() {
           onError={onError}
         />
         {(model.signal?.length ?? 0) === 0 && (
-          <div className="preview-empty">信号を追加すると、ここに波形が表示されます</div>
+          <div className="preview-empty">{t('preview.empty')}</div>
         )}
       </div>
     </section>

@@ -1,5 +1,6 @@
 import { useEditor } from '../../state/store'
 import type { WaveHead, WaveJson } from '../../model/wavejson'
+import { useI18n } from '../../i18n'
 
 // Drop empty keys so an all-blank head/foot disappears from the JSON entirely
 // (keeps exported WaveJSON clean and avoids an empty `head: {}` artifact).
@@ -20,6 +21,7 @@ function clean(h: WaveHead | undefined): WaveHead | undefined {
  * what makes the image usable in a spec or review.
  */
 export function DiagramLabelsPanel() {
+  const { t } = useI18n()
   const model = useEditor((s) => s.model)
   const applyGuiModel = useEditor((s) => s.applyGuiModel)
 
@@ -46,19 +48,19 @@ export function DiagramLabelsPanel() {
   return (
     <div className="labels-panel">
       <label className="labels-row">
-        タイトル（上）
+        {t('labels.titleTop')}
         <input
           value={title}
-          placeholder="例: 書き込みシーケンス"
+          placeholder={t('labels.titlePlaceholder')}
           onChange={(e) => updateHead({ text: e.target.value || undefined }, 'head-text')}
         />
       </label>
 
       <label className="labels-row">
-        注記（下）
+        {t('labels.captionBottom')}
         <input
           value={caption}
-          placeholder="例: ※ tCK = 10 ns"
+          placeholder={t('labels.captionPlaceholder')}
           onChange={(e) => updateFoot({ text: e.target.value || undefined }, 'foot-text')}
         />
       </label>
@@ -69,11 +71,11 @@ export function DiagramLabelsPanel() {
           checked={tickOn}
           onChange={(e) => updateHead({ tick: e.target.checked ? 0 : undefined }, 'head-tick')}
         />
-        サイクル番号（時間軸）を上に表示
+        {t('labels.showCycles')}
       </label>
 
       <label className="labels-row">
-        開始番号
+        {t('labels.startNumber')}
         <input
           type="number"
           value={start}

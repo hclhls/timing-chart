@@ -1,6 +1,7 @@
 import { useEditor } from '../../state/store'
 import { flattenSignals } from '../../state/selectors'
 import { setSignalPeriod, setSignalPhase } from '../../state/actions'
+import { useI18n } from '../../i18n'
 
 function pathEq(a: number[] | null, b: number[]): boolean {
   if (!a || a.length !== b.length) return false
@@ -14,28 +15,29 @@ function pathEq(a: number[] | null, b: number[]): boolean {
  * warning in SignalTable), so this is an "advanced" panel.
  */
 export function SignalTimingPanel() {
+  const { t } = useI18n()
   const model = useEditor((s) => s.model)
   const applyGuiModel = useEditor((s) => s.applyGuiModel)
   const selectedPath = useEditor((s) => s.selectedPath)
 
   if (!selectedPath) {
     return (
-      <div className="bus-panel muted">信号を選ぶと、周期（分周）と位相を設定できます</div>
+      <div className="bus-panel muted">{t('timing.selectHint')}</div>
     )
   }
   const row = flattenSignals(model).find((r) => pathEq(r.path, selectedPath))
   const sig = row?.signal
   if (!sig) {
-    return <div className="bus-panel muted">信号を選択してください</div>
+    return <div className="bus-panel muted">{t('timing.selectSignal')}</div>
   }
   const period = sig.period ?? 1
   const phase = sig.phase ?? 0
 
   return (
     <div className="timing-panel">
-      <div className="bus-panel-title">「{sig.name || '(無名)'}」の周期・位相</div>
+      <div className="bus-panel-title">{t('timing.title', { name: sig.name || t('app.unnamed') })}</div>
       <label className="labels-row">
-        周期（分周比）
+        {t('timing.period')}
         <input
           type="number"
           min={0.1}
@@ -50,7 +52,7 @@ export function SignalTimingPanel() {
         />
       </label>
       <label className="labels-row">
-        位相（ずらし）
+        {t('timing.phase')}
         <input
           type="number"
           step={0.5}
@@ -64,8 +66,7 @@ export function SignalTimingPanel() {
         />
       </label>
       <div className="muted timing-hint">
-        例: クロックの<b>周期</b>を 2 にすると、周期 1 の信号より<b>2倍ゆっくり</b>の分周クロック
-        （clk/2）になります。<b>位相</b>は開始位置のずらしです。値を変えると右のプレビューに反映されます。
+        {t('timing.hint')}
       </div>
     </div>
   )

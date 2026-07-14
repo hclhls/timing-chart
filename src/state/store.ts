@@ -7,6 +7,7 @@ import type { SkinName } from '../render/skins'
 import { DEFAULT_MODEL } from './defaultModel'
 import { readShare } from '../share/url'
 import { flattenSignals } from './selectors'
+import { detectLanguage, translate } from '../i18n'
 
 const STORAGE_KEY = 'timing-chart:model'
 const HISTORY_CAP = 50
@@ -73,13 +74,13 @@ const startModel: WaveJson = share.model ?? persistedAtStart ?? DEFAULT_MODEL
 // Startup notice: a broken share link, or a warning that editing a shared view
 // will overwrite the user's own saved draft (silent loss otherwise).
 const startNotice = (() => {
-  if (share.present && !share.model) return '共有リンクが壊れています（デフォルトを表示）'
+  if (share.present && !share.model) return translate(detectLanguage(), 'store.brokenShare')
   if (
     share.model &&
     persistedAtStart &&
     serializeModel(persistedAtStart) !== serializeModel(share.model)
   ) {
-    return '共有リンクを表示中です。編集すると、このブラウザに保存中の作図が置き換わります。'
+    return translate(detectLanguage(), 'store.shareNotice')
   }
   return null
 })()
@@ -204,7 +205,7 @@ export const useEditor = create<EditorState>((set, get) => ({
     const { textBuffer } = get()
     const res = parseModel(textBuffer)
     if (!(res.ok && res.model)) {
-      set({ parseError: res.error ?? 'パースに失敗しました' })
+      set({ parseError: res.error ?? translate(detectLanguage(), 'store.parseFailed') })
       return
     }
     const state = get()
@@ -401,7 +402,7 @@ useEditor.subscribe((state) => {
         try {
           useEditor
             .getState()
-            .flash('自動保存に失敗しました（保存容量超過か無効）。「その他 → ファイルに保存」で保存してください')
+            .flash(translate(detectLanguage(), 'store.autosaveFailed'))
         } catch {
           /* ignore */
         }
