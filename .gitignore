@@ -6,3 +6,6 @@ dist-ssr
 .vite
 *.tsbuildinfo
 test/_bundles
+
+references/
+docs/superpowers/

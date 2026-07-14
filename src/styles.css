@@ -132,6 +132,13 @@ body {
 .adv-pop select {
   white-space: nowrap;
 }
+.adv-pop input[type='number'] {
+  width: 72px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 6px;
+  background: #fff;
+}
 .adv-row {
   display: flex;
   align-items: center;

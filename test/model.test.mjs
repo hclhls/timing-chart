@@ -2,7 +2,7 @@
 // Imports the real TS via the esbuild-bundled fixture (built by `pretest`).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { codec, actions } from './_bundles/lib.mjs'
+import { codec, actions, pwl } from './_bundles/lib.mjs'
 
 // ---- wave-codec: the lossless expand/compress contract ----
 
@@ -33,6 +33,54 @@ test('isBusState, setTick, extendTick, resizeWave', () => {
   assert.equal(codec.extendTick('0101', 1), '0.01') // tick1 becomes extension of tick0
   assert.equal(codec.resizeWave('01', 4), '01..') // pad by extending last level
   assert.equal(codec.resizeWave('0123', 2), '01') // truncate
+})
+
+test('waveJsonToPwl exports digital voltage sources and falls back on buses', () => {
+  const text = pwl.waveJsonToPwl({
+    signal: [
+      { name: 'clk', wave: 'p.' },
+      { name: 'enable', wave: '01' },
+      { name: 'bus', wave: '=.', data: ['A0'] },
+    ],
+  })
+
+  assert.match(text, /V100 clk GND pwl\(0,0, 0\.5,1, 1,0, 1\.5,1, 2,0\)/)
+  assert.match(text, /V101 enable GND pwl\(0,0, 1,0, 1,1, 2,1\)/)
+  assert.match(text, /V102 bus GND pwl\(0,0, 1,0, 2,0\)/)
+})
+
+test('waveJsonToPwl supports source index and time suffix options', () => {
+  const text = pwl.waveJsonToPwl(
+    { signal: [{ name: 'in', wave: '01' }] },
+    { step: 10, high: 1.8, sourceStart: 200, timeSuffix: 'n' },
+  )
+
+  assert.match(text, /V200 in GND pwl\(0n,0, 10n,0, 10n,1\.8, 20n,1\.8\)/)
+})
+
+test('signalToPwlPoints falls back unsupported cells to prior digital state', () => {
+  assert.deepEqual(
+    pwl.signalToPwlPoints({ name: 's', wave: '1=xz0' }),
+    [
+      { t: 0, v: 1 },
+      { t: 1, v: 1 },
+      { t: 2, v: 1 },
+      { t: 3, v: 1 },
+      { t: 4, v: 1 },
+      { t: 4, v: 0 },
+      { t: 5, v: 0 },
+    ],
+  )
+})
+
+test('signalToPwlPoints applies period and phase', () => {
+  assert.deepEqual(
+    pwl.signalToPwlPoints({ name: 's', wave: '1', period: 2, phase: 0.25 }, 10),
+    [
+      { t: 2.5, v: 1 },
+      { t: 22.5, v: 1 },
+    ],
+  )
 })
 
 // ---- actions: GUI mutations (each returns a NEW model) ----
