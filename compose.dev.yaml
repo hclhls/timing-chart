@@ -1,0 +1,31 @@
+services:
+  web:
+    build:
+      target: web-build
+    command: npm run dev -- --host 0.0.0.0
+    environment:
+      BASE_PATH: /
+      VITE_API_PROXY_TARGET: http://api:51124
+    ports: !override
+      - '5173:5173'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1:5173/']
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+  bridge:
+    build:
+      context: .
+      target: web-build
+    command: npm run bridge
+    environment:
+      BRIDGE_HOST: 0.0.0.0
+    ports:
+      - '127.0.0.1:51123:51123'
+    profiles: ['dev']
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - app

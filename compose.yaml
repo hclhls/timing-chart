@@ -1,0 +1,42 @@
+services:
+  web:
+    build:
+      context: .
+      target: web
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - '8080:8080'
+    networks:
+      - app
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1:8080/']
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  api:
+    build:
+      context: .
+      target: api
+    environment:
+      AI_BASE_URL:
+      AI_API_KEY:
+      AI_MODEL:
+      AI_HOST: 0.0.0.0
+    expose:
+      - '51124'
+    networks:
+      - app
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('node:http').get('http://127.0.0.1:51124/health', (response) => process.exit(response.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))\""]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+networks:
+  app:
+    driver: bridge
