@@ -73,6 +73,20 @@ The optional local bridge is available on port `51123`:
 docker compose -f compose.yaml -f compose.dev.yaml --profile dev up --build bridge
 ```
 
+### Security notes for public or company-network deployments
+
+The production Compose web port is bound to `127.0.0.1:8080` by default. To let other company devices use the app, do not expose the Docker port directly. Put an HTTPS reverse proxy such as Nginx in front of it and apply all of the following controls:
+
+- Require company SSO, VPN access, or authentication at the reverse proxy
+- Allow only the company network ranges; do not expose the service directly to the public Internet
+- Never publish ports `51124` (AI API) or `51123` (bridge). Use the bridge only during development and keep it loopback-only
+- Proxy requests from the reverse proxy to `127.0.0.1:8080`. The application Host/Origin checks reject unexpected values with `403`
+- Keep AI API keys only in server-side `.env` files or a secret manager; never commit them to GitHub or expose them to the browser
+- The chart, chat history, and requested changes are sent to the configured AI provider. Confirm that this complies with company data-protection rules and provider agreements
+- Configure authentication, rate limiting, and sensitive-data masking in the reverse proxy as well
+
+An unauthenticated Internet-facing deployment is not supported. The built-in concurrent AI request limit only reduces abuse; it is not a substitute for user authentication.
+
 ## AI Chat Setup
 
 The optional chat panel uses an OpenAI-compatible service through the server-side Node proxy. In one terminal,
