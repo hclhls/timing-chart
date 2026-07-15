@@ -2,7 +2,82 @@
 // Imports the real TS via the esbuild-bundled fixture (built by `pretest`).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { codec, actions, pwl } from './_bundles/lib.mjs'
+import { codec, actions, pwl, validation, diff } from './_bundles/lib.mjs'
+
+// ---- AI proposal boundary helpers ----
+
+test('validateWaveJson accepts supported signals and nested groups', () => {
+  const value = {
+    signal: [
+      { name: 'clk', wave: 'p.' },
+      ['bus group', { name: 'bus', wave: '=.', data: ['A0'] }],
+    ],
+    edge: ['a~>b'],
+    config: { hscale: 2, skin: 'narrow' },
+    head: { text: 'Title', tick: 1, tock: 2, every: 3 },
+    foot: { text: 'Caption' },
+  }
+  const result = validation.validateWaveJson(value)
+  assert.equal(result.ok, true)
+  assert.deepEqual(result.model, value)
+})
+
+test('validateWaveJson rejects malformed lanes and optional fields', () => {
+  const invalid = [
+    { signal: 'not an array' },
+    { signal: [{ name: 1, wave: '0' }] },
+    { signal: [{ name: 's', wave: 1 }] },
+    { signal: [{ name: 's', wave: '0', data: ['ok', 1] }] },
+    { signal: [['group', []]] },
+    { signal: [{ wave: '0' }], edge: [1] },
+    { signal: [{ wave: '0' }], config: { hscale: Infinity } },
+    { signal: [{ wave: '0' }], head: { tick: NaN } },
+    { signal: [{ wave: '0' }], foot: 'caption' },
+  ]
+  for (const value of invalid) {
+    const result = validation.validateWaveJson(value)
+    assert.equal(result.ok, false, JSON.stringify(value))
+    assert.equal(typeof result.error, 'string')
+  }
+})
+
+test('validateWaveJson requires signal to be an own property', () => {
+  const root = Object.create({ signal: [{ wave: '0' }] })
+  const nested = { signal: [Object.create({ wave: '0' })] }
+  for (const value of [root, nested]) {
+    const result = validation.validateWaveJson(value)
+    assert.equal(result.ok, false)
+  }
+})
+
+test('validateWaveJson rejects explicitly undefined optional fields', () => {
+  const invalid = [
+    { signal: [{ wave: '0', name: undefined }] },
+    { signal: [{ wave: '0', data: undefined }] },
+    { signal: [{ wave: '0', node: undefined }] },
+    { signal: [{ wave: '0', period: undefined }] },
+    { signal: [{ wave: '0', phase: undefined }] },
+    { signal: [{ wave: '0' }], edge: undefined },
+    { signal: [{ wave: '0' }], config: undefined },
+    { signal: [{ wave: '0' }], head: undefined },
+    { signal: [{ wave: '0' }], foot: undefined },
+  ]
+  for (const value of invalid) {
+    const result = validation.validateWaveJson(value)
+    assert.equal(result.ok, false, JSON.stringify(value))
+  }
+})
+
+test('diffWaveJson is empty for equal models and deterministic for changes', () => {
+  const before = { signal: [{ name: 'a', wave: '0' }] }
+  const after = { signal: [{ name: 'a', wave: '1' }, { name: 'b', wave: '0' }] }
+  assert.equal(diff.diffWaveJson(before, before), '')
+  assert.equal(
+    diff.diffWaveJson(before, after),
+    'M signal[0].wave: "0" -> "1"\nA signal[1]: {"name":"b","wave":"0"}',
+  )
+  assert.equal(diff.diffWaveJson(before, after), diff.diffWaveJson(before, after))
+})
 
 // ---- wave-codec: the lossless expand/compress contract ----
 

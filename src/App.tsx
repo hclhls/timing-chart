@@ -13,6 +13,7 @@ import { EdgeEditor } from './components/annotations/EdgeEditor'
 import { WaveJsonEditor } from './components/text/WaveJsonEditor'
 import { PreviewPane } from './components/preview/PreviewPane'
 import { HelpModal } from './components/HelpModal'
+import { ChatPanel } from './components/chat/ChatPanel'
 import { useI18n } from './i18n'
 
 const HELP_SEEN_KEY = 'timing-chart:seen-help'
@@ -219,6 +220,10 @@ export default function App() {
               {t('app.edgesSummary')}{edgeCount > 0 ? ` (${edgeCount})` : ''}
             </summary>
             <EdgeEditor />
+          </details>
+          <details className="panel">
+            <summary>{t('chat.heading')}</summary>
+            <ChatPanel />
           </details>
         </div>
         <div className="pane pane-text" role="tabpanel" id="pane-text" aria-labelledby="tab-text">

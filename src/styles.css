@@ -17,6 +17,18 @@
   box-sizing: border-box;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 html,
 body,
 #root {
@@ -434,10 +446,126 @@ body {
   display: none;
 }
 .panel .bus-panel,
-.panel .edge-editor {
+.panel .edge-editor,
+.panel .chat-panel {
   border: none;
   border-top: 1px solid var(--border);
   border-radius: 0;
+}
+
+/* ---- AI proposal chat ---- */
+.chat-panel {
+  padding: 10px;
+}
+.chat-status {
+  min-height: 1.2em;
+  color: var(--muted);
+  font-size: 12px;
+}
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+}
+.chat-message {
+  padding: 7px 9px;
+  border-radius: 7px;
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+.chat-message-user {
+  align-self: flex-end;
+  background: var(--accent-weak);
+}
+.chat-message-assistant {
+  background: var(--bg);
+}
+.chat-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.chat-form textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font: inherit;
+}
+.chat-form button,
+.chat-actions button,
+.chat-diff-toggle {
+  cursor: pointer;
+  align-self: flex-start;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+.chat-form button.primary,
+.chat-actions button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+.chat-form button:disabled,
+.chat-actions button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.chat-proposal {
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+.chat-warnings {
+  margin-bottom: 8px;
+  padding: 7px 9px;
+  border: 1px solid #f0d9a8;
+  border-radius: 6px;
+  background: #fff7e6;
+  color: #8a5a00;
+  font-size: 13px;
+}
+.chat-warnings h3 {
+  margin: 0;
+  font-size: 13px;
+}
+.chat-warnings ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+.chat-preview {
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+}
+.chat-diff-toggle {
+  margin-top: 8px;
+}
+.chat-diff {
+  max-height: 220px;
+  overflow: auto;
+  margin: 6px 0 0;
+  padding: 8px;
+  background: var(--bg);
+  border-radius: 6px;
+  font-family: "Cascadia Code", Consolas, "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.chat-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .pane-title {

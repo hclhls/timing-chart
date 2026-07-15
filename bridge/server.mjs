@@ -10,9 +10,9 @@
 //   POST /model         -> set model (body = WaveJSON; header X-Client-Id opt.)
 //   GET  /events        -> SSE stream of { model, rev, source } on every change
 //
-// Security/robustness: binds to 127.0.0.1 only (not the LAN), CORS is limited to
-// localhost + the GitHub Pages origin, bad/oversized input returns 4xx without
-// crashing, and static paths are confined to dist/.
+// Security/robustness: binds to 127.0.0.1 only by default (not the LAN), CORS
+// is limited to localhost + the GitHub Pages origin, bad/oversized input
+// returns 4xx without crashing, and static paths are confined to dist/.
 
 import http from 'node:http'
 import { readFile, stat } from 'node:fs/promises'
@@ -247,9 +247,9 @@ export function start(port = Number(process.env.BRIDGE_PORT ?? 51123)) {
   // and body within these windows or the socket is dropped.
   server.headersTimeout = 10_000
   server.requestTimeout = 30_000
-  // 127.0.0.1 only — never expose the chart to the LAN.
-  server.listen(port, '127.0.0.1', () => {
-    console.log(`timing-chart bridge → http://localhost:${port}  (127.0.0.1 のみ)`)
+  const host = process.env.BRIDGE_HOST ?? '127.0.0.1'
+  server.listen(port, host, () => {
+    console.log(`timing-chart bridge → http://localhost:${port}  (${host})`)
     console.log(`  app:    http://localhost:${port}/timing-chart/   (after npm run build)`)
     console.log(`  GET/POST /model · GET /events · GET /health`)
   })

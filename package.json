@@ -9,8 +9,9 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "bridge": "node bridge/server.mjs",
+    "api": "node api/server.mjs",
     "pretest": "esbuild test/_fixtures/lib.ts --bundle --format=esm --platform=node --outfile=test/_bundles/lib.mjs --log-level=error",
-    "test": "node --test test/bridge.test.mjs test/render.test.mjs test/model.test.mjs test/i18n.test.mjs",
+    "test": "node --test test/bridge.test.mjs test/render.test.mjs test/model.test.mjs test/i18n.test.mjs test/api.test.mjs test/chat-client.test.mjs test/docker-config.test.mjs",
     "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {

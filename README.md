@@ -50,6 +50,65 @@ npm test           # 結合/単体テスト（bridge・WaveDrom描画・wave-cod
 > テストは `node --test`。`pretest` が `src/model`・`src/state` を esbuild でバンドルし、
 > TS のコアロジック（可逆 wave-codec・GUI変換アクション等）も CI で検証します。
 
+## Docker
+
+本番用コンテナは <http://localhost:8080> でビルド済みアプリを配信します。
+
+```bash
+docker compose up --build
+```
+
+API サービスにはサーバー環境（または Compose の `.env`）から `AI_BASE_URL`、`AI_API_KEY`、`AI_MODEL` を渡します。
+`AI_API_KEY` は必ずサーバー側だけに置き、`VITE_AI_API_KEY` など Vite/クライアント環境変数には絶対に入れないでください。
+
+Vite を使う開発環境は <http://localhost:5173> で起動します。
+
+```bash
+docker compose -f compose.yaml -f compose.dev.yaml up --build
+```
+
+任意のローカルブリッジはポート `51123` で利用できます。
+
+```bash
+docker compose -f compose.yaml -f compose.dev.yaml --profile dev up --build
+```
+
+このコマンドは開発用の web/API スタックと `dev` プロファイルのブリッジをまとめて起動します。
+ブリッジだけを起動する場合も、先にこの開発スタックを起動しておいてください。
+
+## AIチャットの設定
+
+オプションのチャットパネルは、サーバー側の Node プロキシ経由で OpenAI互換サービスを利用します。
+2つのターミナルで Vite の画面と API プロキシを起動します。
+
+```bash
+npm run dev        # ブラウザ画面: http://localhost:5173/
+npm run api        # サーバー側プロキシ: http://localhost:51124/
+```
+
+`npm run api` の前に、プロキシのプロセスへ次の環境変数を設定します。
+
+- `AI_BASE_URL`: プロバイダーのベースURL（例: `https://api.openai.com/v1`）。プロキシは末尾に `/chat/completions` を付けて呼び出します
+- `AI_API_KEY`: プロバイダーの API キー
+- `AI_MODEL`: プロバイダーが提供するモデル識別子
+
+例:
+
+```bash
+AI_BASE_URL=https://api.openai.com/v1 \
+AI_API_KEY=your-key \
+AI_MODEL=your-model \
+npm run api
+```
+
+`AI_API_KEY` はサーバー側だけで管理してください。**Vite/クライアントの環境変数（`VITE_AI_API_KEY` など）や
+ソースコード、公開フロントエンドに絶対に入れないでください**。クライアント用の値はブラウザ利用者に公開されます。
+ブラウザはローカルプロキシにだけチャット要求を送り、プロキシがサービスへの接続時にキーを付加します。
+
+チャットパネルで変更内容を入力し、**提案を生成**します。説明・警告・一時的な波形プレビューと、必要に応じて
+技術的な WaveJSON 差分を確認してから、**提案を適用**または**破棄**します。適用するとエディタ（Undo履歴を含む）が更新され、
+破棄するとチャートは変更されません。
+
 ## Claude Code 連携（ブリッジ / HTTPエンドポイント）
 
 外部ツール（Claude Code など）から、ブラウザで開いているチャートを読み書きできます。

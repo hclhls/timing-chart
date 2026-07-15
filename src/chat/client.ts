@@ -1,7 +1,7 @@
 import { validateWaveJson } from '../model/validate'
 import type { ChatProposal, ChatRequest } from './types'
 
-const DEFAULT_TIMEOUT_MS = 30_000
+export const DEFAULT_CHAT_TIMEOUT_MS = 120_000
 const proposalKeys = new Set(['message', 'model', 'warnings'])
 
 export async function requestChat(
@@ -9,7 +9,7 @@ export async function requestChat(
   options: { fetchImpl?: typeof fetch; timeoutMs?: number } = {},
 ): Promise<ChatProposal> {
   const fetchImpl = options.fetchImpl ?? fetch
-  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
+  const timeoutMs = options.timeoutMs ?? DEFAULT_CHAT_TIMEOUT_MS
   const controller = new AbortController()
   let timedOut = false
   const timer = setTimeout(() => {

@@ -28,6 +28,10 @@ test('requestChat serializes the request and returns a valid proposal', async ()
   assert.deepEqual(result, proposal)
 })
 
+test('requestChat allows enough time for local large-model inference by default', () => {
+  assert.equal(chat.DEFAULT_CHAT_TIMEOUT_MS, 120_000)
+})
+
 test('requestChat rejects HTTP errors with a readable stable error', async () => {
   await assert.rejects(
     chat.requestChat({ message: 'Add reset', model }, {

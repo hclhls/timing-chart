@@ -4,10 +4,12 @@ import { validateWaveJson } from './wavejson.mjs'
 
 const MAX_BODY_BYTES = 1_000_000
 const DEFAULT_TIMEOUT_MS = 10_000
+const MAX_CONCURRENT_CHAT_REQUESTS = 2
 const requestKeys = new Set(['message', 'model', 'history'])
 const historyKeys = new Set(['role', 'content'])
+let activeChatRequests = 0
 
-export async function start({ port, host = '127.0.0.1', fetchImpl = globalThis.fetch, env = process.env } = {}) {
+export async function start({ port, host, fetchImpl = globalThis.fetch, env = process.env } = {}) {
   const server = http.createServer((req, res) => {
     void handle(req, res, { fetchImpl, env })
   })
@@ -15,14 +17,15 @@ export async function start({ port, host = '127.0.0.1', fetchImpl = globalThis.f
   server.requestTimeout = 30_000
 
   const configuredPort = port ?? portFrom(env)
+  const configuredHost = host ?? hostFrom(env)
   await new Promise((resolve, reject) => {
     server.once('error', reject)
-    server.listen(configuredPort, host, () => {
+    server.listen(configuredPort, configuredHost, () => {
       server.off('error', reject)
       resolve()
     })
   })
-  return { server, port: server.address().port }
+  return { server, port: server.address().port, host: configuredHost }
 }
 
 async function handle(req, res, options) {
@@ -31,38 +34,48 @@ async function handle(req, res, options) {
   }
 
   const { pathname } = new URL(req.url, 'http://localhost')
+  if (pathname === '/health') {
+    if (req.method !== 'GET') return sendJson(res, 405, { error: 'METHOD_NOT_ALLOWED' })
+    return sendJson(res, 200, { ok: true })
+  }
   if (pathname !== '/api/chat') return sendJson(res, 404, { error: 'NOT_FOUND' })
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'METHOD_NOT_ALLOWED' })
+  if (activeChatRequests >= MAX_CONCURRENT_CHAT_REQUESTS) return sendJson(res, 429, { error: 'AI_BUSY' })
 
-  let request
+  activeChatRequests += 1
   try {
-    request = validateRequest(JSON.parse(await readBody(req)))
-  } catch (error) {
-    return sendJson(res, error?.code === 'REQUEST_TOO_LARGE' ? 413 : 400, { error: error?.code ?? 'INVALID_REQUEST' })
-  }
-
-  const config = readConfig(options.env)
-  if (!config) return sendJson(res, 503, { error: 'AI_NOT_CONFIGURED' })
-
-  let provider
-  try {
-    provider = await callProvider(request, config, options.fetchImpl)
-  } catch (error) {
-    return sendJson(res, error?.code === 'AI_TIMEOUT' ? 504 : 502, { error: error?.code ?? 'AI_PROVIDER_ERROR' })
-  }
-
-  try {
-    if (!provider.response.ok) {
-      await provider.response.body?.cancel().catch(() => {})
-      return sendJson(res, 502, { error: 'AI_PROVIDER_ERROR' })
+    let request
+    try {
+      request = validateRequest(JSON.parse(await readBody(req)))
+    } catch (error) {
+      return sendJson(res, error?.code === 'REQUEST_TOO_LARGE' ? 413 : 400, { error: error?.code ?? 'INVALID_REQUEST' })
     }
-    const proposal = validateProposal(await readProviderProposal(provider.response, provider.signal))
-    return sendJson(res, 200, proposal)
-  } catch (error) {
-    const code = error?.code ?? (provider.signal.aborted ? 'AI_TIMEOUT' : undefined)
-    return sendJson(res, code === 'AI_TIMEOUT' ? 504 : 502, { error: code ?? 'AI_INVALID_RESPONSE' })
+
+    const config = readConfig(options.env)
+    if (!config) return sendJson(res, 503, { error: 'AI_NOT_CONFIGURED' })
+
+    let provider
+    try {
+      provider = await callProvider(request, config, options.fetchImpl)
+    } catch (error) {
+      return sendJson(res, error?.code === 'AI_TIMEOUT' ? 504 : 502, { error: error?.code ?? 'AI_PROVIDER_ERROR' })
+    }
+
+    try {
+      if (!provider.response.ok) {
+        await provider.response.body?.cancel().catch(() => {})
+        return sendJson(res, 502, { error: 'AI_PROVIDER_ERROR' })
+      }
+      const proposal = validateProposal(await readProviderProposal(provider.response, provider.signal))
+      return sendJson(res, 200, proposal)
+    } catch (error) {
+      const code = error?.code ?? (provider.signal.aborted ? 'AI_TIMEOUT' : undefined)
+      return sendJson(res, code === 'AI_TIMEOUT' ? 504 : 502, { error: code ?? 'AI_INVALID_RESPONSE' })
+    } finally {
+      provider.dispose()
+    }
   } finally {
-    provider.dispose()
+    activeChatRequests -= 1
   }
 }
 
@@ -102,6 +115,11 @@ function portFrom(env) {
     throw new Error('Invalid AI_PORT: expected an integer from 0 to 65535')
   }
   return port
+}
+
+function hostFrom(env) {
+  const value = env.AI_HOST
+  return typeof value === 'string' && value.trim() !== '' ? value.trim() : '127.0.0.1'
 }
 
 function isAllowedHost(value) {
@@ -176,7 +194,10 @@ async function callProvider(request, config, fetchImpl) {
       },
       body: JSON.stringify({
         model: config.model,
-        response_format: { type: 'json_object' },
+        response_format: { type: 'text' },
+        max_tokens: 2048,
+        chat_template_kwargs: { enable_thinking: false },
+        reasoning_effort: 'none',
         messages: [
           { role: 'system', content: 'Return exactly one JSON object with only "message", "model", and "warnings". "message" must be a string, "model" must be valid WaveJSON, and "warnings" must be an array of strings.' },
           ...(request.history ?? []),
@@ -201,7 +222,35 @@ async function readProviderProposal(response, signal) {
   const payload = JSON.parse(await readProviderBody(response, signal))
   const content = payload?.choices?.[0]?.message?.content
   if (typeof content !== 'string') throw new Error('missing message content')
-  return JSON.parse(unfenceJson(content))
+  const proposal = parseProviderProposal(content)
+  if (isRecord(proposal) && typeof proposal.model === 'string') {
+    const embeddedModel = extractEmbeddedWaveJson(content)
+    if (embeddedModel) proposal.model = embeddedModel
+  }
+  return proposal
+}
+
+function parseProviderProposal(content) {
+  try {
+    return JSON.parse(unfenceJson(content))
+  } catch (error) {
+    const fenced = content.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/i)
+    if (!fenced) throw error
+    return JSON.parse(fenced[1])
+  }
+}
+
+function extractEmbeddedWaveJson(content) {
+  const candidates = [...content.matchAll(/`([\s\S]*?)`/g)]
+  for (const [, candidate] of candidates) {
+    try {
+      const value = JSON.parse(candidate)
+      if (validateWaveJson(value).ok) return value
+    } catch {
+      // Ignore non-JSON commentary snippets.
+    }
+  }
+  return undefined
 }
 
 async function readProviderBody(response, signal) {
@@ -256,9 +305,18 @@ function validateProposal(value) {
   if (typeof value.message !== 'string' || !Array.isArray(value.warnings) || !value.warnings.every((warning) => typeof warning === 'string')) {
     throw new Error('invalid proposal')
   }
-  const model = validateWaveJson(value.model)
+  const modelValue = typeof value.model === 'string' ? parseJsonModel(value.model) : value.model
+  const model = validateWaveJson(modelValue)
   if (!model.ok) throw new Error('invalid model')
   return { message: value.message, model: model.model, warnings: value.warnings }
+}
+
+function parseJsonModel(value) {
+  try {
+    return JSON.parse(value)
+  } catch {
+    throw new Error('invalid model')
+  }
 }
 
 function isRecord(value) {
@@ -280,8 +338,8 @@ function invalidRequest() {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  start().then(({ port }) => {
-    console.log(`timing-chart AI API → http://127.0.0.1:${port}`)
+  start().then(({ host, port }) => {
+    console.log(`timing-chart AI API → http://${host}:${port}`)
     console.log('  POST /api/chat · OpenAI-compatible proxy')
   }).catch((error) => {
     console.error('AI API failed to start:', error?.message ?? error)

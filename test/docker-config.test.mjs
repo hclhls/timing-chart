@@ -72,13 +72,14 @@ test('Compose exposes only the web service on its unprivileged runtime port and 
   const api = compose.split(/^  api:\s*$/m)[1]?.split(/^networks:\s*$/m)[0] ?? ''
 
   assert.match(compose, /^services:\s*$/m)
-  assert.match(web, /^\s+ports:\s*\n\s+-\s+['"]?8080:8080['"]?\s*$/m)
+  assert.match(web, /^\s+ports:\s*\n\s+-\s+['"]?127\.0\.0\.1:8080:8080['"]?\s*$/m)
   assert.doesNotMatch(api, /^\s+ports:\s*$/m)
   assert.match(api, /^\s+environment:\s*$/m)
   for (const name of ['AI_BASE_URL', 'AI_API_KEY', 'AI_MODEL']) {
-    assert.match(api, new RegExp(`^\\s+${name}:\\s*$`, 'm'))
+    assert.match(api, new RegExp(`^\\s+${name}:\\s+\\$\\{${name}\\}\\s*$`, 'm'))
     assert.doesNotMatch(web, new RegExp(`^\\s+${name}:`, 'm'))
   }
+  assert.match(api, /^\s+AI_TIMEOUT_MS:\s+\$\{AI_TIMEOUT_MS:-120000\}\s*$/m)
   assert.match(api, /^\s+AI_HOST:\s+0\.0\.0\.0\s*$/m)
 })
 
@@ -106,7 +107,7 @@ test('development Compose runs Vite with source and dependency mounts', async ()
   assert.match(web, /^\s+target:\s+web-build\s*$/m)
   assert.match(web, /^\s+command:\s+npm run dev -- --host 0\.0\.0\.0\s*$/m)
   assert.match(web, /^\s+BASE_PATH:\s+\/\s*$/m)
-  assert.match(web, /^\s+ports:(?:\s+!override)?\s*\n\s+-\s+['"]?5173:5173['"]?\s*$/m)
+  assert.match(web, /^\s+ports:(?:\s+!override)?\s*\n\s+-\s+['"]?127\.0\.0\.1:5173:5173['"]?\s*$/m)
   assert.match(web, /^\s+volumes:\s*\n\s+-\s+\.:\/app\s*\n\s+-\s+\/app\/node_modules\s*$/m)
   assert.match(web, /healthcheck:[\s\S]*?5173/)
 })
@@ -117,6 +118,7 @@ test('development Compose targets the API service and gates the bridge behind th
   const bridge = compose.split(/^  bridge:\s*$/m)[1] ?? ''
 
   assert.match(web, /^\s+VITE_API_PROXY_TARGET:\s+http:\/\/api:51124\s*$/m)
+  assert.match(web, /^\s+VITE_API_PROXY_HOST:\s+localhost:51124\s*$/m)
   assert.match(bridge, /^\s+command:\s+npm run bridge\s*$/m)
   assert.match(bridge, /^\s+BRIDGE_HOST:\s+0\.0\.0\.0\s*$/m)
   assert.doesNotMatch(web, /^\s+BRIDGE_HOST:/m)
@@ -130,7 +132,14 @@ test('.gitignore ignores local environment files while retaining the example fil
   }
 })
 
+test('.gitignore excludes local agent state and session data', () => {
+  for (const entry of ['.agents/', '.claude/', '.claude-sandbox/', '.codex/', '.copilot/', '.gemini/', '.sesshu/', '.superpowers/']) {
+    assert.match(gitignore, new RegExp(`^${entry.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'm'))
+  }
+})
+
 test('Vite uses an overridable API proxy target with a local default', () => {
   assert.match(viteConfig, /process\.env\.VITE_API_PROXY_TARGET\s*\?\?\s*'http:\/\/localhost:51124'/)
-  assert.match(viteConfig, /'\/api':\s*apiProxyTarget/)
+  assert.match(viteConfig, /'\/api':\s*\{[\s\S]*target:\s*apiProxyTarget/)
+  assert.match(viteConfig, /VITE_API_PROXY_HOST/)
 })

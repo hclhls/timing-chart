@@ -50,6 +50,62 @@ npm test           # integration/unit tests for bridge, WaveDrom rendering, wave
 > Tests use `node --test`. The `pretest` step bundles `src/model` and `src/state` with esbuild,
 > so the TypeScript core logic, including lossless wave-codec behavior and GUI conversion actions, is verified in CI.
 
+## Docker
+
+Production serves the built app at <http://localhost:8080>:
+
+```bash
+docker compose up --build
+```
+
+The API service accepts `AI_BASE_URL`, `AI_API_KEY`, and `AI_MODEL` from the server environment (or a Compose `.env` file).
+`AI_API_KEY` must remain server-side: never pass it through Vite/client variables such as `VITE_AI_API_KEY`.
+
+For development with Vite, use <http://localhost:5173>:
+
+```bash
+docker compose -f compose.yaml -f compose.dev.yaml up --build
+```
+
+The optional local bridge is available on port `51123`:
+
+```bash
+docker compose -f compose.yaml -f compose.dev.yaml --profile dev up --build bridge
+```
+
+## AI Chat Setup
+
+The optional chat panel uses an OpenAI-compatible service through the server-side Node proxy. In one terminal,
+start the Vite client and the API proxy:
+
+```bash
+npm run dev        # browser app at http://localhost:5173/
+npm run api        # server-side proxy at http://localhost:51124/
+```
+
+Configure the proxy process with these environment variables before `npm run api`:
+
+- `AI_BASE_URL`: the provider base URL, such as `https://api.openai.com/v1`; the proxy calls its `/chat/completions` endpoint
+- `AI_API_KEY`: the provider API key
+- `AI_MODEL`: the model identifier supported by the provider
+
+For example:
+
+```bash
+AI_BASE_URL=https://api.openai.com/v1 \
+AI_API_KEY=your-key \
+AI_MODEL=your-model \
+npm run api
+```
+
+Keep `AI_API_KEY` server-side. **Never put it in Vite/client environment variables** (such as `VITE_AI_API_KEY`),
+source code, or a deployed frontend, because client variables are exposed to browser users. The browser sends chat
+requests only to the local proxy, which adds the key when contacting the OpenAI-compatible service.
+
+In the chat panel, enter a requested chart change and choose **Generate proposal**. Review the assistant explanation,
+warnings, temporary waveform preview, and optional technical WaveJSON diff; then choose **Apply proposal** or **Discard**.
+Applying updates the editor (and its undo history), while discarding leaves the chart unchanged.
+
 ## Claude Code Integration: Bridge / HTTP Endpoint
 
 External tools such as Claude Code can read and write the chart currently open in the browser.

@@ -98,6 +98,67 @@ test('POST /api/chat reports missing AI configuration without calling a provider
   assert.equal(called, false)
 })
 
+test('POST /api/chat limits concurrent provider requests', async () => {
+  const releases = []
+  let calls = 0
+  const base = await createApi({
+    fetchImpl: async () => {
+      calls += 1
+      return new Promise((resolve) => releases.push(() => resolve(new Response(JSON.stringify({
+        choices: [{ message: { content: JSON.stringify({ message: 'ok', model: validModel, warnings: [] }) } }],
+      }), { status: 200 }))))
+    },
+  })
+  const body = { message: 'Add reset', model: validModel }
+  const first = chat(base, body)
+  const second = chat(base, body)
+  while (calls < 2) await new Promise((resolve) => setTimeout(resolve, 1))
+
+  const rejected = await chat(base, body)
+  assert.equal(rejected.status, 429)
+  assert.deepEqual(await rejected.json(), { error: 'AI_BUSY' })
+
+  releases.forEach((release) => release())
+  await Promise.all([first, second])
+})
+
+test('GET /health reports readiness without AI configuration while retaining Host protection', async () => {
+  let called = false
+  const base = await createApi({
+    env: { AI_BASE_URL: '', AI_API_KEY: '', AI_MODEL: '' },
+    fetchImpl: async () => {
+      called = true
+      return new Response('{}')
+    },
+  })
+
+  const response = await fetch(`${base}/health`)
+  assert.equal(response.status, 200)
+  assert.deepEqual(await response.json(), { ok: true })
+  assert.equal(called, false)
+
+  const forbidden = await new Promise((resolve, reject) => {
+    const url = new URL('/health', base)
+    const request = http.request({
+      hostname: url.hostname,
+      port: url.port,
+      path: url.pathname,
+      headers: { Host: 'provider.example' },
+    }, (response) => {
+      const chunks = []
+      response.on('data', (chunk) => chunks.push(chunk))
+      response.on('end', () => resolve(new Response(Buffer.concat(chunks), {
+        status: response.statusCode,
+        headers: response.headers,
+      })))
+    })
+    request.on('error', reject)
+    request.end()
+  })
+  assert.equal(forbidden.status, 403)
+  assert.deepEqual(await forbidden.json(), { error: 'FORBIDDEN' })
+})
+
 test('POST /api/chat rejects malformed request bodies and invalid WaveJSON', async () => {
   const base = await createApi()
   for (const body of [
@@ -138,7 +199,49 @@ test('POST /api/chat returns a structured provider proposal including fenced JSO
   assert.equal(request.options.headers.Authorization, 'Bearer test-key')
   const providerBody = JSON.parse(request.options.body)
   assert.equal(providerBody.model, 'test-model')
+  assert.deepEqual(providerBody.response_format, { type: 'text' })
+  assert.equal(providerBody.max_tokens, 2048)
+  assert.deepEqual(providerBody.chat_template_kwargs, { enable_thinking: false })
+  assert.equal(providerBody.reasoning_effort, 'none')
   assert.match(providerBody.messages[0].content, /exactly.*message.*model.*warnings/i)
+})
+
+test('POST /api/chat accepts a provider that serializes the WaveJSON model as a string', async () => {
+  const base = await createApi({
+    fetchImpl: async () => new Response(JSON.stringify({
+      choices: [{ message: { content: JSON.stringify({
+        message: 'Added a blank row',
+        model: JSON.stringify({ signal: [{ name: 'blank', wave: '...' }] }),
+        warnings: [],
+      }) } }],
+    }), { status: 200 }),
+  })
+
+  const response = await chat(base, { message: 'Add a blank row', model: validModel })
+  assert.equal(response.status, 200)
+  assert.deepEqual(await response.json(), {
+    message: 'Added a blank row',
+    model: { signal: [{ name: 'blank', wave: '...' }] },
+    warnings: [],
+  })
+})
+
+test('POST /api/chat extracts WaveJSON embedded in provider commentary', async () => {
+  const model = { signal: [{ name: 'blank', wave: '...' }] }
+  const base = await createApi({
+    fetchImpl: async () => new Response(JSON.stringify({
+      choices: [{ message: { content: `\`\`\`json
+{"message":"Added a blank row","model":"WaveJSON","warnings":[]}
+
+\`\`\`
+
+Updated model: \`${JSON.stringify(model)}\`` } }],
+    }), { status: 200 }),
+  })
+
+  const response = await chat(base, { message: 'Add a blank row', model: validModel })
+  assert.equal(response.status, 200)
+  assert.deepEqual(await response.json(), { message: 'Added a blank row', model, warnings: [] })
 })
 
 test('POST /api/chat maps non-success provider responses to a stable error', async () => {
@@ -237,4 +340,15 @@ test('start rejects an invalid AI_PORT with a clear configuration error', async 
     start({ env: { AI_PORT: 'not-a-port' } }),
     /Invalid AI_PORT: expected an integer from 0 to 65535/,
   )
+})
+
+test('start uses AI_HOST when configured and otherwise binds to loopback', async () => {
+  const publicApi = await start({ port: 0, env: { AI_HOST: '0.0.0.0' } })
+  const localApi = await start({ port: 0, env: {} })
+  servers.push(publicApi, localApi)
+
+  assert.equal(publicApi.server.address().address, '0.0.0.0')
+  assert.equal(localApi.server.address().address, '127.0.0.1')
+  assert.equal(publicApi.host, '0.0.0.0')
+  assert.equal(localApi.host, '127.0.0.1')
 })

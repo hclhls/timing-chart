@@ -6,8 +6,9 @@ services:
     environment:
       BASE_PATH: /
       VITE_API_PROXY_TARGET: http://api:51124
+      VITE_API_PROXY_HOST: localhost:51124
     ports: !override
-      - '5173:5173'
+      - '127.0.0.1:5173:5173'
     healthcheck:
       test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1:5173/']
     volumes:

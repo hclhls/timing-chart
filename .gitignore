@@ -6,6 +6,19 @@ dist-ssr
 .vite
 *.tsbuildinfo
 test/_bundles
+.env
+.env.*
+!.env.example
+.agents/
+.claude/
+.claude-sandbox/
+.codex/
+.copilot/
+.gemini/
+.sesshu/
+.superpowers/
+AGENTS.md
+skills-lock.json
 
 references/
 docs/superpowers/
